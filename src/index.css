@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* 額外小技巧：讓 body 撐滿全螢幕並預設背景色 */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #020617; /* 同 tailwind 的 slate-950 */
+}
