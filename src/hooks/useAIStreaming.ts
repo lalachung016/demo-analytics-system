@@ -3,8 +3,6 @@ import { createDashboardAnalysisStream } from '../services/aiService';
 
 export type StreamAnalysisOptions = {
   cacheKey: string;
-  /** 與本次載入對應的 mock 是否皆來自快取（由 Dashboard 在 fetch effect 開頭快照） */
-  fromMockCache?: boolean;
   /** 手動重新分析時略過 AI 快取 */
   forceRefresh?: boolean;
 };
@@ -17,9 +15,9 @@ export const useAIStreaming = () => {
 
   const streamAnalysis = useCallback(
     async (dashboardData: unknown, options: StreamAnalysisOptions) => {
-      const { cacheKey, fromMockCache = false, forceRefresh = false } = options;
+      const { cacheKey, forceRefresh = false } = options;
 
-      if (!forceRefresh && fromMockCache) {
+      if (!forceRefresh) {
         const cached = analysisCacheRef.current.get(cacheKey);
         if (cached !== undefined) {
           runIdRef.current += 1;
@@ -44,9 +42,6 @@ export const useAIStreaming = () => {
           const content = chunk.choices[0]?.delta?.content ?? '';
           if (!content) continue;
 
-          for (const ch of content) {
-            console.log(ch);
-          }
           accumulated += content;
           setText(accumulated);
         }

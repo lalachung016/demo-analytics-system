@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import Button from '@mui/material/Button';
 import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
@@ -6,8 +6,7 @@ import {
   getKpiMockData,
   getPieChartMockData,
   getStackedAreaMockData,
-  isMockKpiCached,
-  isMockPieAndTrendCached,
+  peekKpiFromCache,
 } from '../services/mockData';
 import { useExcelExport } from '../hooks/useExcelExport';
 import CategoryPieChart from '../components/CategoryPieChart';
@@ -27,9 +26,6 @@ const Dashboard: React.FC = () => {
   const [kpiData, setKpiData] = useState<KpiData[]>([]);
   const { isExporting, exportExcel } = useExcelExport();
   const { text: aiAnalysisText, isLoading: isAiStreaming, streamAnalysis } = useAIStreaming();
-  const pieTrendFromCacheRef = useRef(false);
-  const kpiFromCacheRef = useRef(false);
-
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
     setIsPieLoading(true);
@@ -40,7 +36,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleKpiCategoryChange = (category: KpiCategory) => {
-    setIsKpiLoading(true);
+    const cached = peekKpiFromCache(year, category);
+    if (cached) {
+      setKpiData(cached);
+      setIsKpiLoading(false);
+    } else {
+      setIsKpiLoading(true);
+    }
     setKpiCategory(category);
   };
 
@@ -49,7 +51,6 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    pieTrendFromCacheRef.current = isMockPieAndTrendCached(year);
     let cancelled = false;
 
     getPieChartMockData({ year }).then((result) => {
@@ -70,7 +71,6 @@ const Dashboard: React.FC = () => {
   }, [year]);
 
   useEffect(() => {
-    kpiFromCacheRef.current = isMockKpiCached(year, kpiCategory);
     let cancelled = false;
 
     getKpiMockData({ year, category: kpiCategory }).then((result) => {
@@ -106,8 +106,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (!isDashboardDataReady) return;
-    const fromMockCache = pieTrendFromCacheRef.current && kpiFromCacheRef.current;
-    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey, fromMockCache });
+    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey });
   }, [isDashboardDataReady, dashboardData, streamAnalysis, aiCacheKey]);
 
   return (

@@ -72,6 +72,10 @@ export const isMockPieAndTrendCached = (year: number): boolean =>
 export const isMockKpiCached = (year: number, category: KpiCategory): boolean =>
   kpiCache.has(`${year}-${category}`);
 
+/** 同步讀取已快取之 KPI（切換選項時可立即顯示，無需等待 async）。 */
+export const peekKpiFromCache = (year: number, category: KpiCategory): KpiData[] | undefined =>
+  kpiCache.get(`${year}-${category}`);
+
 export const getPieChartMockData = async (query: { year: number }): Promise<YearlyPieChartData> => {
   const cached = pieChartCache.get(query.year);
   if (cached) return cached;
