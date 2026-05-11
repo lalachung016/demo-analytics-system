@@ -35,3 +35,9 @@ export interface SimulatorData {
   value: number;
   unit: string;
 }
+
+// live metrics data type
+export interface LivePoint {
+  timestamp: number; // epoch ms
+  value: number;
+}
