@@ -29,7 +29,19 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
-        formatter: '{b}: {c} ({d}%)'
+        confine: true,
+        extraCssText: 'max-width: 180px; white-space: normal; word-break: break-word;',
+        formatter: '{b}: {c} ({d}%)',
+        position: (point, _params, _dom, _rect, size) => {
+          const [x, y] = point;
+          const [viewWidth, viewHeight] = size.viewSize;
+          const [contentWidth, contentHeight] = size.contentSize;
+          const gap = 12;
+
+          const left = Math.min(Math.max(x + gap, gap), viewWidth - contentWidth - gap);
+          const top = Math.min(Math.max(y + gap, gap), viewHeight - contentHeight - gap);
+          return [left, top];
+        },
       },
       series: [
         {
