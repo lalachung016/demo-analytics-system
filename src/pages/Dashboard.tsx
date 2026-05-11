@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import Button from '@mui/material/Button';
 import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
@@ -8,6 +8,7 @@ import CategoryPieChart from '../components/CategoryPieChart';
 import KpiPanel from '../components/KpiPanel';
 import StackedAreaChart from '../components/StackedAreaChart';
 import YearSelector from '../components/YearSelector';
+import { useAIStreaming } from '../hooks/useAIStreaming';
 
 const Dashboard: React.FC = () => {  
   const [year, setYear] = useState<number>(2025);
@@ -19,6 +20,7 @@ const Dashboard: React.FC = () => {
   const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
   const [kpiData, setKpiData] = useState<KpiData[]>([]);
   const { isExporting, exportExcel } = useExcelExport();
+  const { text: aiAnalysisText, isLoading: isAiStreaming, streamAnalysis } = useAIStreaming();
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
@@ -71,6 +73,29 @@ const Dashboard: React.FC = () => {
       cancelled = true;
     };
   }, [year, kpiCategory]);
+
+  const dashboardData = useMemo(() => ({
+    pieData: pieData,
+    trendData: trendData,
+    kpiData: kpiData,
+  }), [pieData, trendData, kpiData]);
+
+  const isDashboardDataReady =
+    !isPieLoading &&
+    !isTrendLoading &&
+    !isKpiLoading &&
+    pieData.length > 0 &&
+    trendData !== null &&
+    kpiData.length > 0;
+
+  const handleAIAnalysis = () => {
+    void streamAnalysis(dashboardData);
+  };
+
+  useEffect(() => {
+    if (!isDashboardDataReady) return;
+    void streamAnalysis(dashboardData);
+  }, [isDashboardDataReady, dashboardData, streamAnalysis]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
@@ -163,12 +188,25 @@ const Dashboard: React.FC = () => {
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-[410px] flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
-              {/* <h2 className="font-semibold text-slate-300">動態參數模擬器 (Simulator)</h2> */}
-              <h2 className="font-semibold text-slate-300"> AI分析 </h2>
+              <h2 className="font-semibold text-slate-300"> AI 分析 </h2>
             </div>
             {/* 模擬器內容預留空間 */}
-            <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-600">
-              [ Simulator Controls & Bubble Chart Placeholder ]
+            <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex flex-col gap-3 p-4 text-slate-300 min-h-0">
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={isAiStreaming || !isDashboardDataReady}
+                onClick={handleAIAnalysis}
+              >
+                {isAiStreaming ? '分析中…' : '重新取得 AI 分析'}
+              </Button>
+              <div className="flex-1 overflow-auto rounded-md bg-slate-950/50 border border-slate-800 p-3 text-sm leading-relaxed whitespace-pre-wrap font-mono text-slate-400">
+                {isAiStreaming && !aiAnalysisText ? (
+                  <span className="text-slate-500">等待模型回應…</span>
+                ) : (
+                  aiAnalysisText || <span className="text-slate-500">載入儀表板資料後將自動開始分析。</span>
+                )}
+              </div>
             </div>
           </div>
           
