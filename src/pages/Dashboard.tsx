@@ -3,6 +3,7 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import Button from '@mui/material/Button';
 import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
 import { getKpiMockData, getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
+import { useExcelExport } from '../hooks/useExcelExport';
 import CategoryPieChart from '../components/CategoryPieChart';
 import KpiPanel from '../components/KpiPanel';
 import StackedAreaChart from '../components/StackedAreaChart';
@@ -17,6 +18,7 @@ const Dashboard: React.FC = () => {
   const [pieData, setPieData] = useState<PieChartData[]>([]);
   const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
   const [kpiData, setKpiData] = useState<KpiData[]>([]);
+  const { isExporting, exportExcel } = useExcelExport();
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
@@ -30,6 +32,10 @@ const Dashboard: React.FC = () => {
   const handleKpiCategoryChange = (category: KpiCategory) => {
     setIsKpiLoading(true);
     setKpiCategory(category);
+  };
+
+  const handleExport = async () => {
+    await exportExcel(pieData, trendData, kpiData, `dashboard-${year}`);
   };
 
   useEffect(() => {
@@ -83,6 +89,8 @@ const Dashboard: React.FC = () => {
             variant="contained"
             size="small"
             startIcon={<DownloadOutlinedIcon />}
+            disabled={isExporting}
+            onClick={handleExport}
             sx={{
               bgcolor: '#0284c7',
               color: '#fff',
@@ -92,9 +100,13 @@ const Dashboard: React.FC = () => {
               px: 1.5,
               py: 0.8,
               '&:hover': { bgcolor: '#0ea5e9' },
+              '&.Mui-disabled': {
+                bgcolor: '#0369a1',
+                color: 'rgba(255, 255, 255, 0.72)',
+              },
             }}
           >
-            匯出數據 (Excel)
+            {isExporting ? '下載中' : '匯出數據 (Excel)'}
           </Button>
         </div>
       </header>
