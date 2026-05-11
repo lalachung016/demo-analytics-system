@@ -1,13 +1,8 @@
-// import GHGOverview from './pages/GHGOverview';
-import Dashboard from './pages/Dashboard';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './router';
 
 function App() {
-  return (
-    <div className="w-full min-h-screen">
-      {/* <GHGOverview /> */}
-      <Dashboard />
-    </div>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
