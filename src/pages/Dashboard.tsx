@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import type { PieChartData } from '../types/dashboard';
-import { getPieChartMockData } from '../services/mockData';
+import type { PieChartData, YearlyStackedAreaData } from '../types/dashboard';
+import { getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
 import CategoryPieChart from '../components/CategoryPieChart';
+import StackedAreaChart from '../components/StackedAreaChart';
 
 const Dashboard: React.FC = () => {  
   const [year, setYear] = useState<number>(2025);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPieLoading, setIsPieLoading] = useState<boolean>(true);
+  const [isTrendLoading, setIsTrendLoading] = useState<boolean>(true);
   const [pieData, setPieData] = useState<PieChartData[]>([]);
+  const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
-    setIsLoading(true);
+    setIsPieLoading(true);
+    setIsTrendLoading(true);
     setYear(year);
   };
 
@@ -20,7 +24,13 @@ const Dashboard: React.FC = () => {
     getPieChartMockData({ year }).then((result) => {
       if (cancelled) return;
       setPieData(result.categories);
-      setIsLoading(false);
+      setIsPieLoading(false);
+    });
+
+    getStackedAreaMockData({ year }).then((result) => {
+      if (cancelled) return;
+      setTrendData(result);
+      setIsTrendLoading(false);
     });
 
     return () => {
@@ -65,7 +75,7 @@ const Dashboard: React.FC = () => {
             </div>
             {/* 圖表預留空間 */}
             <div className="min-h-[300px] bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-600 text-sm gap-1">
-              {!isLoading && pieData.length > 0 ? (
+              {!isPieLoading && pieData.length > 0 ? (
                 <CategoryPieChart data={pieData} title="資料結構組成佔比" />
               ) : (
                 <span className="text-slate-500 font-mono text-xs">載入中…</span>
@@ -81,7 +91,11 @@ const Dashboard: React.FC = () => {
             </div>
             {/* 圖表預留空間 */}
             <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-600">
-              [ ECharts Stacked Area Chart Placeholder ]
+              {!isTrendLoading && trendData ? (
+                <StackedAreaChart data={trendData} title="趨勢分析與時間序列" />
+              ) : (
+                <span className="text-slate-500 font-mono text-xs">載入中…</span>
+              )}
             </div>
           </div>
         </section>

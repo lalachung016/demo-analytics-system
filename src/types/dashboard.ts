@@ -6,10 +6,16 @@ export interface PieChartData {
 }
 
 // stacked area chart data type
-export interface StackedAreaData {
-  year: number;
-  value: number;
+export interface StackedAreaSeries {
+  name: string;
+  values: number[];
   unit: string;
+}
+
+export interface YearlyStackedAreaData {
+  year: number;
+  months: string[];
+  series: StackedAreaSeries[];
 }
 
 // kpi data type
