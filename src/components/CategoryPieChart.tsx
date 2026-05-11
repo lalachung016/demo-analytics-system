@@ -1,16 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import type { PieChartData } from '../types/dashboard';
 
 const PIE_COLORS = ['#38bdf8', '#2dd4bf', '#fb923c', '#94a3b8'] as const;
 
-interface CategoryData {
-  name: string;
-  value: number;
-  unit: string;
-}
-
 interface Props {
-  data: CategoryData[];
+  data: PieChartData[];
   title: string;
 }
 

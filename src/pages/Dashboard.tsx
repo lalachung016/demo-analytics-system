@@ -1,28 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import type { CategoryData } from '../types/dashboard';
-import { getCategoryMockData } from '../services/mockData';
+import React, { useEffect, useState } from 'react';
+import type { PieChartData } from '../types/dashboard';
+import { getPieChartMockData } from '../services/mockData';
 import CategoryPieChart from '../components/CategoryPieChart';
 
-const Dashboard: React.FC = () => {
-
-  
+const Dashboard: React.FC = () => {  
   const [year, setYear] = useState<number>(2025);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [pieData, setPieData] = useState<PieChartData[]>([]);
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
+    setIsLoading(true);
     setYear(year);
   };
 
-  const [pieData, setPieData] = useState<CategoryData[]>([]);
-
   useEffect(() => {
-    setPieData(getCategoryMockData({ year }).categories);
+    let cancelled = false;
+
+    getPieChartMockData({ year }).then((result) => {
+      if (cancelled) return;
+      setPieData(result.categories);
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [year]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
       {/* 頂部 Header */}
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
             多維度指標監控面板 (Metrics Dashboard)
@@ -30,7 +39,7 @@ const Dashboard: React.FC = () => {
           <p className="text-slate-500 text-sm mt-1">年度數據回顧與即時模擬分析</p>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-3 py-1">
             <button className={`hover:text-sky-400 ${year === 2017 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={() => handleYearChange(year - 1)} >{'<'}</button>
             <span className="mx-4 font-mono">{year}</span>
@@ -56,7 +65,7 @@ const Dashboard: React.FC = () => {
             </div>
             {/* 圖表預留空間 */}
             <div className="min-h-[300px] bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-600 text-sm gap-1">
-              {pieData.length > 0 ? (
+              {!isLoading && pieData.length > 0 ? (
                 <CategoryPieChart data={pieData} title="資料結構組成佔比" />
               ) : (
                 <span className="text-slate-500 font-mono text-xs">載入中…</span>
