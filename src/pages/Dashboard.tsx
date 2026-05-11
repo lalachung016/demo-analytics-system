@@ -1,8 +1,14 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import Button from '@mui/material/Button';
 import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
-import { getKpiMockData, getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
+import {
+  getKpiMockData,
+  getPieChartMockData,
+  getStackedAreaMockData,
+  isMockKpiCached,
+  isMockPieAndTrendCached,
+} from '../services/mockData';
 import { useExcelExport } from '../hooks/useExcelExport';
 import CategoryPieChart from '../components/CategoryPieChart';
 import KpiPanel from '../components/KpiPanel';
@@ -21,6 +27,8 @@ const Dashboard: React.FC = () => {
   const [kpiData, setKpiData] = useState<KpiData[]>([]);
   const { isExporting, exportExcel } = useExcelExport();
   const { text: aiAnalysisText, isLoading: isAiStreaming, streamAnalysis } = useAIStreaming();
+  const pieTrendFromCacheRef = useRef(false);
+  const kpiFromCacheRef = useRef(false);
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
@@ -41,6 +49,7 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    pieTrendFromCacheRef.current = isMockPieAndTrendCached(year);
     let cancelled = false;
 
     getPieChartMockData({ year }).then((result) => {
@@ -61,6 +70,7 @@ const Dashboard: React.FC = () => {
   }, [year]);
 
   useEffect(() => {
+    kpiFromCacheRef.current = isMockKpiCached(year, kpiCategory);
     let cancelled = false;
 
     getKpiMockData({ year, category: kpiCategory }).then((result) => {
@@ -88,14 +98,17 @@ const Dashboard: React.FC = () => {
     trendData !== null &&
     kpiData.length > 0;
 
+  const aiCacheKey = `${year}-${kpiCategory}`;
+
   const handleAIAnalysis = () => {
-    void streamAnalysis(dashboardData);
+    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey, forceRefresh: true });
   };
 
   useEffect(() => {
     if (!isDashboardDataReady) return;
-    void streamAnalysis(dashboardData);
-  }, [isDashboardDataReady, dashboardData, streamAnalysis]);
+    const fromMockCache = pieTrendFromCacheRef.current && kpiFromCacheRef.current;
+    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey, fromMockCache });
+  }, [isDashboardDataReady, dashboardData, streamAnalysis, aiCacheKey]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
@@ -126,12 +139,15 @@ const Dashboard: React.FC = () => {
               py: 0.8,
               '&:hover': { bgcolor: '#0ea5e9' },
               '&.Mui-disabled': {
-                bgcolor: '#0369a1',
-                color: 'rgba(255, 255, 255, 0.72)',
+                opacity: 1,
+                bgcolor: '#475569',
+                color: 'rgba(248, 250, 252, 0.92)',
+                border: '1px solid #94a3b8',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
               },
             }}
           >
-            {isExporting ? '下載中' : '匯出數據 (Excel)'}
+            {isExporting ? '下載中...' : '匯出數據 (Excel)'}
           </Button>
         </div>
       </header>
@@ -197,6 +213,21 @@ const Dashboard: React.FC = () => {
                 color="primary"
                 disabled={isAiStreaming || !isDashboardDataReady}
                 onClick={handleAIAnalysis}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: '0.5rem',
+                  bgcolor: '#0284c7',
+                  color: '#fff',
+                  '&:hover': { bgcolor: '#0ea5e9' },
+                  '&.Mui-disabled': {
+                    opacity: 1,
+                    bgcolor: '#475569',
+                    color: 'rgba(248, 250, 252, 0.92)',
+                    border: '1px solid #94a3b8',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+                  },
+                }}
               >
                 {isAiStreaming ? '分析中…' : '重新取得 AI 分析'}
               </Button>

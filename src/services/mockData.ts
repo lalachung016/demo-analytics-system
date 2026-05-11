@@ -64,6 +64,14 @@ const sleep = (ms: number): Promise<void> =>
     setTimeout(resolve, ms);
   });
 
+/** 該年度圓餅與趨勢圖是否已存在於 mock 快取（本次載入前即命中）。 */
+export const isMockPieAndTrendCached = (year: number): boolean =>
+  pieChartCache.has(year) && stackedAreaCache.has(year);
+
+/** 該年度＋KPI 分類是否已存在於 mock 快取。 */
+export const isMockKpiCached = (year: number, category: KpiCategory): boolean =>
+  kpiCache.has(`${year}-${category}`);
+
 export const getPieChartMockData = async (query: { year: number }): Promise<YearlyPieChartData> => {
   const cached = pieChartCache.get(query.year);
   if (cached) return cached;
