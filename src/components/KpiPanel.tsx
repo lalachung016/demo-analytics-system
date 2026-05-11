@@ -21,7 +21,7 @@ const KpiPanel: React.FC<Props> = ({
   onCategoryChange,
 }) => {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 min-h-[290px]">
       <div className="flex items-center gap-2 mb-4 justify-between">
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
@@ -47,7 +47,7 @@ const KpiPanel: React.FC<Props> = ({
           </Select>
         </FormControl>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-4 h-full">
         {!isLoading ? (
           kpiData.map((item) => (
             <div key={item.name} className="bg-slate-800/50 p-4 rounded-lg flex justify-between items-center">
@@ -95,7 +95,7 @@ const KpiPanel: React.FC<Props> = ({
             </div>
           ))
         ) : (
-          <div className="bg-slate-800/30 p-4 rounded-lg text-center text-slate-500 text-sm font-mono">
+          <div className="min-h-[250px] flex items-center justify-center bg-slate-800/30 p-4 rounded-lg text-center text-slate-500 text-sm font-mono">
             載入中…
           </div>
         )}

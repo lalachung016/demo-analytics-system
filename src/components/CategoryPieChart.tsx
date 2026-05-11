@@ -95,7 +95,7 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
   }, [data, title, totalValue]);
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center w-full h-full p-4">
+    <div className="flex flex-col md:flex-row md:items-center w-full h-full px-4">
       {/* 關鍵：容器必須有明確的寬高，這裡使用 flex-1 或固定寬度 */}
       <div
         ref={chartRef}
@@ -103,7 +103,7 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
       />
       
       {/* 右側列表 */}
-      <div className="flex-1 mt-6 md:mt-0 md:ml-16 space-y-4">
+      <div className="flex-1 md:mt-0 md:ml-16 space-y-4 my-4">
         {data.map((item, index) => (
           <div key={item.name} className="flex justify-between items-center">
             <div className="flex items-center gap-2">
