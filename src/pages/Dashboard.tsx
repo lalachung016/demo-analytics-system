@@ -1,21 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import type { PieChartData, YearlyStackedAreaData } from '../types/dashboard';
-import { getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
+import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
+import { getKpiMockData, getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
 import CategoryPieChart from '../components/CategoryPieChart';
+import KpiPanel from '../components/KpiPanel';
 import StackedAreaChart from '../components/StackedAreaChart';
 
 const Dashboard: React.FC = () => {  
   const [year, setYear] = useState<number>(2025);
+  const [kpiCategory, setKpiCategory] = useState<KpiCategory>('A');
   const [isPieLoading, setIsPieLoading] = useState<boolean>(true);
   const [isTrendLoading, setIsTrendLoading] = useState<boolean>(true);
+  const [isKpiLoading, setIsKpiLoading] = useState<boolean>(true);
   const [pieData, setPieData] = useState<PieChartData[]>([]);
   const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
+  const [kpiData, setKpiData] = useState<KpiData[]>([]);
 
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
     setIsPieLoading(true);
     setIsTrendLoading(true);
+    setIsKpiLoading(true);
+    setKpiCategory('A');
     setYear(year);
+  };
+
+  const handleKpiCategoryChange = (category: KpiCategory) => {
+    setIsKpiLoading(true);
+    setKpiCategory(category);
   };
 
   useEffect(() => {
@@ -37,6 +48,20 @@ const Dashboard: React.FC = () => {
       cancelled = true;
     };
   }, [year]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getKpiMockData({ year, category: kpiCategory }).then((result) => {
+      if (cancelled) return;
+      setKpiData(result);
+      setIsKpiLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [year, kpiCategory]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
@@ -102,22 +127,12 @@ const Dashboard: React.FC = () => {
 
         {/* 右側：指標與互動區 (佔 4 欄) */}
         <section className="col-span-12 lg:col-span-4 space-y-6">
-          
-          {/* KPI 指標指標 */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-              <h2 className="font-semibold text-slate-300">KPI 指標指標</h2>
-            </div>
-            <div className="space-y-4">
-              {['指標 X', '指標 Y', '指標 Z'].map((label) => (
-                <div key={label} className="bg-slate-800/50 p-4 rounded-lg flex justify-between items-center">
-                  <span className="text-slate-400 text-sm">{label}</span>
-                  <span className="text-xl font-mono text-white">0.00</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <KpiPanel
+            kpiCategory={kpiCategory}
+            isLoading={isKpiLoading}
+            kpiData={kpiData}
+            onCategoryChange={handleKpiCategoryChange}
+          />
 
           {/* 動態參數模擬器 */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-[410px] flex flex-col">

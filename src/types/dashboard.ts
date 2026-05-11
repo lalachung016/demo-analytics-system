@@ -21,9 +21,13 @@ export interface YearlyStackedAreaData {
 // kpi data type
 export interface KpiData {
   name: string;
-  value: number;
+  value: number; // 當年度
+  previousValue: number; // 去年度
+  description: string; // 指標說明（隨機產生後固定）
   unit: string;
 }
+
+export type KpiCategory = 'A' | 'B';
 
 // simulator data type
 export interface SimulatorData {
