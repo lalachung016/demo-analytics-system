@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import type { PieChartData } from '../types/dashboard';
+import { useChartAutoResize } from '../hooks/useChartAutoResize';
 
 const PIE_COLORS = ['#38bdf8', '#2dd4bf', '#fb923c', '#94a3b8'] as const;
 
@@ -83,16 +84,13 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
 
     chartInstance.current.setOption(option);
 
-    // 3. 響應式處理
-    const handleResize = () => chartInstance.current?.resize();
-    window.addEventListener('resize', handleResize);
-
     return () => {
-      window.removeEventListener('resize', handleResize);
       chartInstance.current?.dispose();
       chartInstance.current = null;
     };
   }, [data, title, totalValue]);
+
+  useChartAutoResize(chartInstance, chartRef);
 
   return (
     <div className="flex flex-col md:flex-row md:items-center w-full h-full px-4">

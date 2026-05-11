@@ -25,12 +25,11 @@ const Layout: React.FC = () => {
   }, [isMobileOpen]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans md:flex">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans overflow-x-clip md:flex md:overflow-x-visible">
       {/* 手機版頂列 */}
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-900/80 backdrop-blur border-b border-slate-800">
         <div className="flex items-baseline gap-2">
-          <span className="text-xs tracking-widest text-slate-500">ESG</span>
-          <span className="text-base font-bold text-white">Carbon Dashboard</span>
+          <span className="text-base font-bold text-white">Analytics System</span>
         </div>
         <button
           type="button"
@@ -69,8 +68,7 @@ const Layout: React.FC = () => {
           ].join(' ')}
         >
           <div className={isCollapsed ? 'block md:hidden' : 'block'}>
-            <div className="text-xs tracking-widest text-slate-500">ESG</div>
-            <div className="text-lg font-bold text-white">Carbon Dashboard</div>
+            <div className="text-lg font-bold text-white">Analytics System</div>
           </div>
           <button
             type="button"
@@ -127,7 +125,7 @@ const Layout: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0">
+      <main className="w-full min-w-0 md:w-auto md:flex-1">
         <Outlet />
       </main>
     </div>

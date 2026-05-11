@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import type { YearlyStackedAreaData } from '../types/dashboard';
+import { useChartAutoResize } from '../hooks/useChartAutoResize';
 
 interface Props {
   data: YearlyStackedAreaData;
@@ -74,14 +75,13 @@ const StackedAreaChart: React.FC<Props> = ({ data, title }) => {
 
     chartInstance.current.setOption(option);
 
-    const handleResize = () => chartInstance.current?.resize();
-    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
       chartInstance.current?.dispose();
       chartInstance.current = null;
     };
   }, [data, title]);
+
+  useChartAutoResize(chartInstance, chartRef);
 
   return <div ref={chartRef} className="w-full h-full min-h-[260px]" />;
 };
