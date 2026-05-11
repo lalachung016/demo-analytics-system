@@ -1,9 +1,24 @@
-// import React, { useState, useEffect } from 'react';
-// import type { CategoryData } from '../types/dashboard';
-// import { getCategoryMockData } from '../services/mockData';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import type { CategoryData } from '../types/dashboard';
+import { getCategoryMockData } from '../services/mockData';
+import CategoryPieChart from '../components/CategoryPieChart';
 
 const Dashboard: React.FC = () => {
+
+  
+  const [year, setYear] = useState<number>(2025);
+
+  const handleYearChange = (year: number) => {
+    if (year < 2017 || year > 2026) return;
+    setYear(year);
+  };
+
+  const [pieData, setPieData] = useState<CategoryData[]>([]);
+
+  useEffect(() => {
+    setPieData(getCategoryMockData({ year }).categories);
+  }, [year]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
       {/* 頂部 Header */}
@@ -17,9 +32,9 @@ const Dashboard: React.FC = () => {
         
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-3 py-1">
-            <button className="hover:text-sky-400">{'<'}</button>
-            <span className="mx-4 font-mono">2025</span>
-            <button className="hover:text-sky-400">{'>'}</button>
+            <button className={`hover:text-sky-400 ${year === 2017 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={() => handleYearChange(year - 1)} >{'<'}</button>
+            <span className="mx-4 font-mono">{year}</span>
+            <button className={`hover:text-sky-400 ${year === 2026 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={() => handleYearChange(year + 1)}>{'>'}</button>
           </div>
           <button className="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             匯出數據 (Excel)
@@ -34,14 +49,18 @@ const Dashboard: React.FC = () => {
         <section className="col-span-12 lg:col-span-8 space-y-6">
           
           {/* 上：資料結構組成佔比 */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-[300px] flex flex-col">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-4 bg-sky-500 rounded-full"></div>
               <h2 className="font-semibold text-slate-300">資料結構組成佔比 (Category Pie Chart)</h2>
             </div>
             {/* 圖表預留空間 */}
-            <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-600">
-              [ ECharts Ring Chart Placeholder ]
+            <div className="min-h-[300px] bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-600 text-sm gap-1">
+              {pieData.length > 0 ? (
+                <CategoryPieChart data={pieData} title="資料結構組成佔比" />
+              ) : (
+                <span className="text-slate-500 font-mono text-xs">載入中…</span>
+              )}
             </div>
           </div>
 

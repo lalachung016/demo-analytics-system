@@ -1,10 +1,22 @@
+import { faker } from '@faker-js/faker';
 import type { CategoryData } from '../types/dashboard';
 
-export const getCategoryMockData = (): CategoryData[] => {
-    return [
-      { name: '數據 A', value: 7829.3, unit: '萬元' },
-      { name: '數據 B', value: 8313.7, unit: '萬元' },
-      { name: '數據 C', value: 697.2, unit: '萬元' },
-      { name: '其他', value: 484.4, unit: '萬元' },
-    ];
-  };
+export interface YearlyCategoryGroup {
+  year: number;
+  categories: CategoryData[];
+}
+
+const CATEGORY_NAMES = ['數據 A', '數據 B', '數據 C', '其他'] as const;
+
+const createYearGroup = (year: number): YearlyCategoryGroup => ({
+  year,
+  categories: CATEGORY_NAMES.map((name) => ({
+    name,
+    value: faker.number.float({ min: 200, max: 9500, fractionDigits: 1 }),
+    unit: '萬元',
+  })),
+});
+
+export const getCategoryMockData = (query: { year: number }): YearlyCategoryGroup => {
+  return createYearGroup(query.year);
+};
