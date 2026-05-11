@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -38,75 +38,46 @@ const LiveMetrics: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const dataBufferRef = useRef<PointTuple[]>([]);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  /** 視覺是否暫停；用 ref 是因為 subscribe callback 需要讀最新值，避免閉包過期 */
+  const isPausedRef = useRef<boolean>(false);
   const [pointCount, setPointCount] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  const startStreaming = useCallback(() => {
-    const chart = chartInstance.current;
-    if (!chart || unsubscribeRef.current) return;
-
-    const buf = dataBufferRef.current;
-    const lastTs = buf[buf.length - 1]?.[0] ?? Date.now();
-
-    // 移除 dataZoom、回到 rolling window；同時把目前資料重新塞回 series（dataZoom 在 paused 時可能曾經切換 series 的可視範圍）
-    chart.setOption(
-      {
-        xAxis: { min: lastTs - WINDOW_MS, max: lastTs },
-        dataZoom: [],
-        series: [{ data: buf }],
-      },
-      { replaceMerge: ['dataZoom'] },
-    );
-
-    unsubscribeRef.current = subscribeLiveMetrics((p) => {
-      const point: PointTuple = [p.timestamp, p.value];
-      dataBufferRef.current.push(point);
-      chart.appendData({ seriesIndex: 0, data: [point] });
-
-      // 超過 MAX_POINTS：trim 到 KEEP_POINTS 並用 setOption 整批重塞（順便讓 scale 重生）
-      if (dataBufferRef.current.length > MAX_POINTS) {
-        dataBufferRef.current = dataBufferRef.current.slice(-KEEP_POINTS);
-        chart.setOption({
-          xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
-          series: [{ data: dataBufferRef.current }],
-        });
-      } else {
-        chart.setOption({
-          xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
-        });
-      }
-
-      setPointCount(dataBufferRef.current.length);
-    });
-  }, []);
-
-  const stopStreaming = useCallback(() => {
-    unsubscribeRef.current?.();
-    unsubscribeRef.current = null;
-
+  const togglePause = () => {
     const chart = chartInstance.current;
     if (!chart) return;
-    const buf = dataBufferRef.current;
-    if (buf.length === 0) return;
 
-    // 切換到「歷史檢視」：axis 自動 fit 整段資料、加上 dataZoom 讓使用者拖曳
-    chart.setOption({
-      xAxis: { min: buf[0][0], max: buf[buf.length - 1][0] },
-      dataZoom: [
-        { type: 'inside', xAxisIndex: 0 },
-        sliderStyle,
-      ],
-    });
-  }, []);
-
-  const togglePause = () => {
-    if (isPaused) {
+    if (isPausedRef.current) {
+      // === 繼續播放：跳轉到最新時間點 ===
+      isPausedRef.current = false;
       setIsPaused(false);
-      startStreaming();
+
+      const buf = dataBufferRef.current;
+      const lastTs = buf[buf.length - 1]?.[0] ?? Date.now();
+      // 用 setOption 整批塞入 buffer（含暫停期間累積的資料）並回到 rolling window
+      chart.setOption(
+        {
+          xAxis: { min: lastTs - WINDOW_MS, max: lastTs },
+          dataZoom: [],
+          series: [{ data: buf }],
+        },
+        { replaceMerge: ['dataZoom'] },
+      );
     } else {
+      // === 暫停：把當下 buffer 凍結為 dataZoom 可探索的快照（訂閱不會停） ===
+      isPausedRef.current = true;
       setIsPaused(true);
-      stopStreaming();
+
+      const buf = dataBufferRef.current;
+      if (buf.length === 0) return;
+      chart.setOption({
+        xAxis: { min: buf[0][0], max: buf[buf.length - 1][0] },
+        dataZoom: [
+          { type: 'inside', xAxisIndex: 0 },
+          sliderStyle,
+        ],
+        series: [{ data: buf }],
+      });
     }
   };
 
@@ -172,15 +143,43 @@ const LiveMetrics: React.FC = () => {
     };
 
     chart.setOption(option);
-    startStreaming();
+
+    // 訂閱在元件整個生命週期常駐；視覺暫停與否由 isPausedRef 控制
+    const unsubscribe = subscribeLiveMetrics((p) => {
+      const point: PointTuple = [p.timestamp, p.value];
+      dataBufferRef.current.push(point);
+
+      let didTrim = false;
+      if (dataBufferRef.current.length > MAX_POINTS) {
+        dataBufferRef.current = dataBufferRef.current.slice(-KEEP_POINTS);
+        didTrim = true;
+      }
+
+      if (!isPausedRef.current) {
+        if (didTrim) {
+          // trim 後一次性 setOption 把整個 buffer 塞回去（順便讓 scale 重生）
+          chart.setOption({
+            xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
+            series: [{ data: dataBufferRef.current }],
+          });
+        } else {
+          chart.appendData({ seriesIndex: 0, data: [point] });
+          chart.setOption({
+            xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
+          });
+        }
+      }
+      // 暫停模式：只更新 buffer & 計數，不動圖表（畫面保持快照供使用者拖曳檢視）
+
+      setPointCount(dataBufferRef.current.length);
+    });
 
     return () => {
-      unsubscribeRef.current?.();
-      unsubscribeRef.current = null;
+      unsubscribe();
       chart.dispose();
       chartInstance.current = null;
     };
-  }, [startStreaming]);
+  }, []);
 
   useChartAutoResize(chartInstance, chartRef);
 
