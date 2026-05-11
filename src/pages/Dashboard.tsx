@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import Button from '@mui/material/Button';
 import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
 import { getKpiMockData, getPieChartMockData, getStackedAreaMockData } from '../services/mockData';
 import CategoryPieChart from '../components/CategoryPieChart';
 import KpiPanel from '../components/KpiPanel';
 import StackedAreaChart from '../components/StackedAreaChart';
+import YearSelector from '../components/YearSelector';
 
 const Dashboard: React.FC = () => {  
   const [year, setYear] = useState<number>(2025);
@@ -75,14 +78,24 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-3 py-1">
-            <button className={`hover:text-sky-400 ${year === 2017 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={() => handleYearChange(year - 1)} >{'<'}</button>
-            <span className="mx-4 font-mono">{year}</span>
-            <button className={`hover:text-sky-400 ${year === 2026 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={() => handleYearChange(year + 1)}>{'>'}</button>
-          </div>
-          <button className="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <YearSelector year={year} minYear={2017} maxYear={2026} onYearChange={handleYearChange} />
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<DownloadOutlinedIcon />}
+            sx={{
+              bgcolor: '#0284c7',
+              color: '#fff',
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: '0.5rem',
+              px: 1.5,
+              py: 0.8,
+              '&:hover': { bgcolor: '#0ea5e9' },
+            }}
+          >
             匯出數據 (Excel)
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -138,7 +151,8 @@ const Dashboard: React.FC = () => {
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-[410px] flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
-              <h2 className="font-semibold text-slate-300">動態參數模擬器 (Simulator)</h2>
+              {/* <h2 className="font-semibold text-slate-300">動態參數模擬器 (Simulator)</h2> */}
+              <h2 className="font-semibold text-slate-300"> AI分析 </h2>
             </div>
             {/* 模擬器內容預留空間 */}
             <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-600">
