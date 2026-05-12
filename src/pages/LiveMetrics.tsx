@@ -94,6 +94,7 @@ const LiveMetrics: React.FC = () => {
     const seedEndTs = seed[seed.length - 1].timestamp;
 
     const option: echarts.EChartsOption = {
+      large: true,
       backgroundColor: 'transparent',
       animation: false,
       grid: { left: 48, right: 24, top: 24, bottom: 32 },
