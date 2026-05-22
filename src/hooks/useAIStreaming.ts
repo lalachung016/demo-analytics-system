@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { createDashboardAnalysisStream } from '../services/aiService';
+import type { DashboardAnalysis } from '../types/analysis';
+import { parseStreamingDashboardAnalysis } from '../utils/parseStreamingAnalysis';
 
 export type StreamAnalysisOptions = {
   cacheKey: string;
@@ -7,8 +9,21 @@ export type StreamAnalysisOptions = {
   forceRefresh?: boolean;
 };
 
+function applyParsedFromRaw(
+  raw: string,
+  setText: (value: string) => void,
+  setAnalysis: (value: DashboardAnalysis | null) => void,
+) {
+  const parsed = parseStreamingDashboardAnalysis(raw);
+  if (!parsed) return;
+
+  setAnalysis(parsed);
+  setText(parsed.live_analysis);
+}
+
 export const useAIStreaming = () => {
   const [text, setText] = useState('');
+  const [analysis, setAnalysis] = useState<DashboardAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const runIdRef = useRef(0);
   const analysisCacheRef = useRef<Map<string, string>>(new Map());
@@ -21,7 +36,7 @@ export const useAIStreaming = () => {
         const cached = analysisCacheRef.current.get(cacheKey);
         if (cached !== undefined) {
           runIdRef.current += 1;
-          setText(cached);
+          applyParsedFromRaw(cached, setText, setAnalysis);
           setIsLoading(false);
           return;
         }
@@ -30,6 +45,7 @@ export const useAIStreaming = () => {
       const runId = ++runIdRef.current;
       setIsLoading(true);
       setText('');
+      setAnalysis(null);
 
       let accumulated = '';
 
@@ -41,11 +57,12 @@ export const useAIStreaming = () => {
           if (!content) continue;
 
           accumulated += content;
-          setText(accumulated);
+          applyParsedFromRaw(accumulated, setText, setAnalysis);
         }
 
         if (runId === runIdRef.current && accumulated.length > 0) {
           analysisCacheRef.current.set(cacheKey, accumulated);
+          applyParsedFromRaw(accumulated, setText, setAnalysis);
         }
       } catch (error) {
         console.error('AI 串流呼叫失敗', error);
@@ -58,5 +75,5 @@ export const useAIStreaming = () => {
     [],
   );
 
-  return { text, isLoading, streamAnalysis };
+  return { text, analysis, isLoading, streamAnalysis };
 };

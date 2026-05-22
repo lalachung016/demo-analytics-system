@@ -13,6 +13,7 @@ import CategoryPieChart from '../components/CategoryPieChart';
 import KpiPanel from '../components/KpiPanel';
 import StackedAreaChart from '../components/StackedAreaChart';
 import YearSelector from '../components/YearSelector';
+import AiAnalysisPanel from '../components/AiAnalysisPanel';
 import { useAIStreaming } from '../hooks/useAIStreaming';
 
 const Dashboard: React.FC = () => {  
@@ -25,7 +26,12 @@ const Dashboard: React.FC = () => {
   const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
   const [kpiData, setKpiData] = useState<KpiData[]>([]);
   const { isExporting, exportExcel } = useExcelExport();
-  const { text: aiAnalysisText, isLoading: isAiStreaming, streamAnalysis } = useAIStreaming();
+  const {
+    text: aiAnalysisText,
+    analysis: aiAnalysis,
+    isLoading: isAiStreaming,
+    streamAnalysis,
+  } = useAIStreaming();
   const handleYearChange = (year: number) => {
     if (year < 2017 || year > 2026) return;
     setIsPieLoading(true);
@@ -199,46 +205,13 @@ const Dashboard: React.FC = () => {
             onCategoryChange={handleKpiCategoryChange}
           />
 
-          {/* 動態參數模擬器 */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-[410px] flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
-              <h2 className="font-semibold text-slate-300"> AI 分析 </h2>
-            </div>
-            {/* 模擬器內容預留空間 */}
-            <div className="flex-1 bg-slate-800/30 rounded-lg border border-dashed border-slate-700 flex flex-col gap-3 p-4 text-slate-300 min-h-0">
-              <Button
-                variant="contained"
-                color="primary"
-                disabled={isAiStreaming || !isDashboardDataReady}
-                onClick={handleAIAnalysis}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderRadius: '0.5rem',
-                  bgcolor: '#0284c7',
-                  color: '#fff',
-                  '&:hover': { bgcolor: '#0ea5e9' },
-                  '&.Mui-disabled': {
-                    opacity: 1,
-                    bgcolor: '#475569',
-                    color: 'rgba(248, 250, 252, 0.92)',
-                    border: '1px solid #94a3b8',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-                  },
-                }}
-              >
-                {isAiStreaming ? '分析中…' : '重新取得 AI 分析'}
-              </Button>
-              <div className="flex-1 overflow-auto rounded-md bg-slate-950/50 border border-slate-800 p-3 text-sm leading-relaxed whitespace-pre-wrap font-mono text-slate-400">
-                {isAiStreaming && !aiAnalysisText ? (
-                  <span className="text-slate-500">等待模型回應…</span>
-                ) : (
-                  aiAnalysisText || <span className="text-slate-500">載入儀表板資料後將自動開始分析。</span>
-                )}
-              </div>
-            </div>
-          </div>
+          <AiAnalysisPanel
+            analysisText={aiAnalysisText}
+            analysis={aiAnalysis}
+            isStreaming={isAiStreaming}
+            isDataReady={isDashboardDataReady}
+            onRefresh={handleAIAnalysis}
+          />
           
         </section>
       </main>
