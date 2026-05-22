@@ -1,29 +1,42 @@
-import OpenAI from 'openai';
+const ANALYZE_API_PATH = '/api/analyze';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
+async function* readTextStream(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
 
-const DASHBOARD_STREAM_MODEL = 'gpt-4o-mini';
-const DASHBOARD_STREAM_TEMPERATURE = 0.7;
-
-const SYSTEM_PROMPT =
-  '你是一位數據分析顧問，請根據使用者提供的儀表板 JSON 資料，提供簡短、可執行的觀察與建議。這是一個 demo，請簡單回答，字數不要超過 100 字。';
-
-function buildUserPrompt(dashboardData: unknown): string {
-  return `請針對以下儀表板資料（pieData、trendData、kpiData）進行分析並給出建議：\n${JSON.stringify(dashboardData)}`;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value?.length) {
+        yield decoder.decode(value, { stream: true });
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
-/** 建立儀表板分析的串流 completion；模型與訊息模板皆封裝於此。 */
-export async function createDashboardAnalysisStream(dashboardData: unknown) {
-  return openai.chat.completions.create({
-    model: DASHBOARD_STREAM_MODEL,
-    temperature: DASHBOARD_STREAM_TEMPERATURE,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserPrompt(dashboardData) },
-    ],
-    stream: true,
+/** 透過 Vercel Serverless Function 建立儀表板分析的文字串流。 */
+export async function createDashboardAnalysisStream(
+  dashboardData: unknown,
+): Promise<AsyncIterable<string>> {
+  const response = await fetch(ANALYZE_API_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dashboardData }),
   });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => response.statusText);
+    throw new Error(message || `Analyze API failed (${response.status})`);
+  }
+
+  if (!response.body) {
+    throw new Error('Analyze API returned empty body');
+  }
+
+  return readTextStream(response.body);
 }

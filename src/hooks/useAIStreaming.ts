@@ -36,10 +36,8 @@ export const useAIStreaming = () => {
       try {
         const stream = await createDashboardAnalysisStream(dashboardData);
 
-        for await (const chunk of stream) {
+        for await (const content of stream) {
           if (runId !== runIdRef.current) break;
-
-          const content = chunk.choices[0]?.delta?.content ?? '';
           if (!content) continue;
 
           accumulated += content;
