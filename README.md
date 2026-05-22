@@ -66,6 +66,21 @@ npm run dev
 | `/api` | Vercel 直接處理 | Vite proxy → 3000 |
 | 設定檔 | `vercel.json` | `vite.config.ts` proxy |
 
+## Live Metrics 資料流
+
+| 階段 | 來源 |
+|------|------|
+| 初始 10,000 筆 | `GET /api/history`（`api/history.js`） |
+| 即時推送（200ms） | `simulation/mock_data.py` → Pusher `live-metrics` / `point` |
+
+本機執行推播模擬器：
+
+```bash
+cd simulation && pip install -r requirements.txt && python mock_data.py
+```
+
+前端 `subscribeLiveMetrics`（`src/services/liveMetricsService.ts`）已保留接口，Pusher 串接待實作。
+
 ## 建置與部署
 
 ```bash

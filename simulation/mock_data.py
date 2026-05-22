@@ -1,65 +1,69 @@
+"""
+Live Metrics 即時推播模擬器（每 200ms 一筆）。
+演算法與 api/history.js 初始序列的 nextLiveValue 一致（mean-reversion 隨機漫步）。
+推播至 Pusher，前端 subscribeLiveMetrics 尚未串接。
+"""
+
+import os
 import time
 import random
 from pusher import Pusher
 
-app_id = "2157962"
-key = "beea5dbbca4da25458e6"
-secret = "139a4800fdeaa57b660d"
-cluster = "ap3"
+LIVE_INTERVAL_SEC = 0.2
+LIVE_VALUE_MIN = 0.0
+LIVE_VALUE_MAX = 100.0
+LIVE_VALUE_MEAN = 50.0
+LIVE_STEP_RANGE = 3.0
+LIVE_REVERSION = 0.02
 
-# 1. 填入你的 Pusher Keys
-pusher_client = Pusher(
-    app_id=app_id,
-    key=key,
-    secret=secret,
-    cluster=cluster,
-    ssl=True
-)
+PUSHER_CHANNEL = "live-metrics"
+PUSHER_EVENT = "point"
 
-print("🚀 電商即時金流監控數據源已啟動...（每 200ms 推播一次）")
 
-tick = 0
-is_disaster = False
-disaster_countdown = 0
+def clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
 
-while True:
-    tick += 1
-    timestamp = int(time.time() * 1000)
-    active_users = int(5000 + random.uniform(-200, 200))
-    
-    # 2. 模擬隨機商業災難：每 60 秒左右（約 300 次 tick）引爆一次金流危機
-    if not is_disaster and tick % 300 == 0:
-        is_disaster = True
-        disaster_countdown = 50 # 災難持續 50 次 tick (約 10 秒)
-        print("\n🚨 [ALERT] 商業事件引爆：第三方金流 API 回應延遲，結帳失敗率開始狂飆！")
 
-    if is_disaster:
-        # 災難期間：結帳失敗率飆升至 30% ~ 45%
-        checkout_failure_rate = round(random.uniform(30.0, 45.0), 2)
-        disaster_countdown -= 1
-        if disaster_countdown <= 0:
-            is_disaster = False
-            print("\n✅ [RESOLVED] 金流備援系統觸發，指標逐漸恢復正常。")
-    else:
-        # 正常期間：結帳失敗率在 0.5% ~ 1.5% 之間健康波動
-        checkout_failure_rate = round(random.uniform(0.5, 1.5), 2)
+def next_live_value(prev: float) -> float:
+    delta = random.uniform(-LIVE_STEP_RANGE, LIVE_STEP_RANGE)
+    reversion = (LIVE_VALUE_MEAN - prev) * LIVE_REVERSION
+    return round(clamp(prev + delta + reversion, LIVE_VALUE_MIN, LIVE_VALUE_MAX), 2)
 
-    # 3. 計算大廠主管最懂的商業指標：風險營業額 (假設平均客單價 50 美元)
-    # 公式：在線人數 * 失敗率 * 50
-    revenue_at_risk = round(active_users * (checkout_failure_rate / 100.0) * 50, 2)
 
-    data = {
-        "timestamp": timestamp,
-        "checkout_failure_rate": checkout_failure_rate,
-        "active_users": active_users,
-        "revenue_at_risk": revenue_at_risk
-    }
+def create_pusher_client() -> Pusher:
+    return Pusher(
+        app_id=os.environ.get("PUSHER_APP_ID", "2157962"),
+        key=os.environ.get("PUSHER_KEY", "beea5dbbca4da25458e6"),
+        secret=os.environ.get("PUSHER_SECRET", "139a4800fdeaa57b660d"),
+        cluster=os.environ.get("PUSHER_CLUSTER", "ap3"),
+        ssl=True,
+    )
 
-    # 4. 透過 WebSocket 頻道推播至雲端
-    pusher_client.trigger('realtime-analytics', 'metrics-update', data)
-    
-    # 在終端機列印，方便肉眼 Debug
-    status_tag = "[🚨 DANGER]" if is_disaster else "[🍏 NORMAL]"
-    print(f"{status_tag} 失敗率: {checkout_failure_rate}% | 在線: {active_users}人 | 風險營業額: ${revenue_at_risk}")
 
-    time.sleep(0.2) # 每 200 毫秒打一筆資料
+def main() -> None:
+    pusher_client = create_pusher_client()
+    live_last_value = LIVE_VALUE_MEAN
+    live_last_timestamp = int(time.time() * 1000)
+
+    print(
+        f"🚀 Live Metrics 推播已啟動（每 {int(LIVE_INTERVAL_SEC * 1000)}ms → "
+        f"{PUSHER_CHANNEL}/{PUSHER_EVENT}）"
+    )
+
+    while True:
+        live_last_value = next_live_value(live_last_value)
+        live_last_timestamp += int(LIVE_INTERVAL_SEC * 1000)
+
+        now = int(time.time() * 1000)
+        if live_last_timestamp < now - int(LIVE_INTERVAL_SEC * 1000) * 2:
+            live_last_timestamp = now
+
+        point = {"timestamp": live_last_timestamp, "value": live_last_value}
+        pusher_client.trigger(PUSHER_CHANNEL, PUSHER_EVENT, point)
+
+        print(f"[LIVE] ts={live_last_timestamp} value={live_last_value}")
+        time.sleep(LIVE_INTERVAL_SEC)
+
+
+if __name__ == "__main__":
+    main()

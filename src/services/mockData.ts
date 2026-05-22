@@ -2,7 +2,6 @@ import { faker } from '@faker-js/faker';
 import type {
   KpiCategory,
   KpiData,
-  LivePoint,
   PieChartData,
   YearlyStackedAreaData,
 } from '../types/dashboard';
@@ -115,83 +114,4 @@ export const getKpiMockData = async (
   const generated = createKpiGroup(query.category);
   kpiCache.set(key, generated);
   return generated;
-};
-
-// ---------------- Live metrics（即時動態大數據折線圖） ----------------
-
-const LIVE_INTERVAL_MS = 200;
-const LIVE_INITIAL_COUNT = 10_000;
-const LIVE_VALUE_MIN = 0;
-const LIVE_VALUE_MAX = 100;
-const LIVE_VALUE_MEAN = (LIVE_VALUE_MIN + LIVE_VALUE_MAX) / 2; // 50
-const LIVE_STEP_RANGE = 3; // 隨機漫步單步上下限
-const LIVE_REVERSION = 0.02; // 每步往中心 (50) 拉的強度
-
-let liveLastValue = LIVE_VALUE_MEAN;
-let liveLastTimestamp = 0;
-
-const clamp = (v: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, v));
-
-/**
- * 帶 mean-reversion 的隨機漫步：
- *   next = prev + Uniform(-step, +step) + (mean - prev) * reversion
- * 統計上會把值穩定在 50 附近（約 ±20 區間自然擺盪），最後 clamp 保證 [0, 100]。
- */
-const nextLiveValue = (prev: number): number => {
-  const delta = faker.number.float({
-    min: -LIVE_STEP_RANGE,
-    max: LIVE_STEP_RANGE,
-    fractionDigits: 2,
-  });
-  const reversion = (LIVE_VALUE_MEAN - prev) * LIVE_REVERSION;
-  return clamp(prev + delta + reversion, LIVE_VALUE_MIN, LIVE_VALUE_MAX);
-};
-
-/**
- * 產生初始 N 筆即時資料（隨機漫步，時間戳由過去推到現在）。
- * 預設 10,000 筆，間距 200ms，剛好對應「最近約 33 分鐘」的歷史資料。
- */
-export const getLiveMetricsSeed = (
-  count: number = LIVE_INITIAL_COUNT,
-  intervalMs: number = LIVE_INTERVAL_MS,
-): LivePoint[] => {
-  const now = Date.now();
-  const points: LivePoint[] = new Array(count);
-  let value = LIVE_VALUE_MEAN;
-  for (let i = 0; i < count; i += 1) {
-    value = nextLiveValue(value);
-    const ts = now - (count - 1 - i) * intervalMs;
-    points[i] = { timestamp: ts, value: Number(value.toFixed(2)) };
-  }
-  liveLastValue = points[count - 1].value;
-  liveLastTimestamp = points[count - 1].timestamp;
-  return points;
-};
-
-export type Unsubscribe = () => void;
-
-/**
- * 訂閱即時資料流；每 intervalMs 推送一個新點，串接在最後一次 seed/推送之後。
- * 回傳 unsubscribe 用於清理 timer（請在元件卸載時呼叫）。
- */
-export const subscribeLiveMetrics = (
-  onPoint: (point: LivePoint) => void,
-  intervalMs: number = LIVE_INTERVAL_MS,
-): Unsubscribe => {
-  const timer = setInterval(() => {
-    liveLastValue = nextLiveValue(liveLastValue);
-    liveLastTimestamp += intervalMs;
-    // tab 切走再回來時，時間戳可能落後實際牆鐘很多，做一次校正
-    const now = Date.now();
-    if (liveLastTimestamp < now - intervalMs * 2) {
-      liveLastTimestamp = now;
-    }
-    onPoint({
-      timestamp: liveLastTimestamp,
-      value: Number(liveLastValue.toFixed(2)),
-    });
-  }, intervalMs);
-
-  return () => clearInterval(timer);
 };
