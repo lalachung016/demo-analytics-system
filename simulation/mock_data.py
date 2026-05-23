@@ -1,13 +1,26 @@
 """
 Live Metrics 即時推播模擬器（每 200ms 一筆）。
-演算法與 api/history.js 初始序列的 nextLiveValue 一致（mean-reversion 隨機漫步）。
-推播至 Pusher，前端 subscribeLiveMetrics 尚未串接。
+憑證：simulation/.env；PUSHER_KEY / PUSHER_CLUSTER 缺省時改讀專案根目錄 .env 的 VITE_*。
 """
 
 import os
 import time
 import random
+from pathlib import Path
+
 from pusher import Pusher
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+SIMULATION_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SIMULATION_DIR.parent
+
+if load_dotenv:
+    load_dotenv(ROOT_DIR / ".env")
+    load_dotenv(SIMULATION_DIR / ".env", override=True)
 
 LIVE_INTERVAL_SEC = 0.2
 LIVE_VALUE_MIN = 0.0
@@ -18,6 +31,21 @@ LIVE_REVERSION = 0.02
 
 PUSHER_CHANNEL = "live-metrics"
 PUSHER_EVENT = "point"
+
+
+def env_or_fallback(name: str, fallback_name: str | None = None) -> str:
+    value = os.environ.get(name)
+    if value:
+        return value
+    if fallback_name:
+        fallback = os.environ.get(fallback_name)
+        if fallback:
+            return fallback
+    raise RuntimeError(
+        f"Missing {name}"
+        + (f" or {fallback_name}" if fallback_name else "")
+        + " in simulation/.env or project root .env"
+    )
 
 
 def clamp(value: float, lo: float, hi: float) -> float:
@@ -32,10 +60,10 @@ def next_live_value(prev: float) -> float:
 
 def create_pusher_client() -> Pusher:
     return Pusher(
-        app_id=os.environ.get("PUSHER_APP_ID", "2157962"),
-        key=os.environ.get("PUSHER_KEY", "beea5dbbca4da25458e6"),
-        secret=os.environ.get("PUSHER_SECRET", "139a4800fdeaa57b660d"),
-        cluster=os.environ.get("PUSHER_CLUSTER", "ap3"),
+        app_id=env_or_fallback("PUSHER_APP_ID"),
+        key=env_or_fallback("PUSHER_KEY", "VITE_PUSHER_KEY"),
+        secret=env_or_fallback("PUSHER_SECRET"),
+        cluster=env_or_fallback("PUSHER_CLUSTER", "VITE_PUSHER_CLUSTER"),
         ssl=True,
     )
 

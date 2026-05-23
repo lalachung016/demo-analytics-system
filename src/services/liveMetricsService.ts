@@ -11,9 +11,9 @@ export const LIVE_INITIAL_COUNT = 10_000
 export const LIVE_METRICS_PUSHER_CHANNEL = 'live-metrics'
 export const LIVE_METRICS_PUSHER_EVENT = 'point'
 
-/** 公開 key，可透過 VITE_* 覆寫；預設與 simulation/mock_data.py 相同以便本機 demo */
-const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY ?? 'beea5dbbca4da25458e6'
-const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER ?? 'ap3'
+/** 由根目錄 .env 的 VITE_PUSHER_* 提供（與 simulation/.env 的 PUSHER_KEY 應一致） */
+const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY
+const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER
 
 export const LIVE_STREAM_ENABLED = Boolean(PUSHER_KEY && PUSHER_CLUSTER)
 
@@ -42,11 +42,9 @@ function parseLivePoint(payload: unknown): LivePoint | null {
   return { timestamp, value }
 }
 
-function getPusherClient(): Pusher {
+function getPusherClient(key: string, cluster: string): Pusher {
   if (!pusherClient) {
-    pusherClient = new Pusher(PUSHER_KEY, {
-      cluster: PUSHER_CLUSTER,
-    })
+    pusherClient = new Pusher(key, { cluster })
   }
   return pusherClient
 }
@@ -99,11 +97,11 @@ export function subscribeLiveMetrics(
 ): Unsubscribe {
   const { onConnectionChange } = options
 
-  if (!LIVE_STREAM_ENABLED) {
+  if (!LIVE_STREAM_ENABLED || !PUSHER_KEY || !PUSHER_CLUSTER) {
     return () => {}
   }
 
-  const pusher = getPusherClient()
+  const pusher = getPusherClient(PUSHER_KEY, PUSHER_CLUSTER)
   const channel: Channel = pusher.subscribe(LIVE_METRICS_PUSHER_CHANNEL)
 
   const handlePoint = (payload: unknown) => {
