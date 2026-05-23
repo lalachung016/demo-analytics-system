@@ -20,8 +20,10 @@ type HistoryResponse = {
   meta?: { count: number; intervalMs: number };
 };
 
-/** 從 Serverless API 取得 Live Metrics 初始化歷史資料（固定筆數，不含即時新點） */
-export async function fetchLiveMetricsHistory(): Promise<LivePoint[]> {
+let historyCache: LivePoint[] | null = null;
+let historyInflight: Promise<LivePoint[]> | null = null;
+
+async function requestLiveMetricsHistory(): Promise<LivePoint[]> {
   const response = await fetch(HISTORY_API_PATH);
 
   if (!response.ok) {
@@ -35,6 +37,32 @@ export async function fetchLiveMetricsHistory(): Promise<LivePoint[]> {
   }
 
   return data.points;
+}
+
+/** 從 Serverless API 取得 Live Metrics 初始化歷史資料（併發請求會共用同一 Promise，避免 Strict Mode 重複呼叫） */
+export async function fetchLiveMetricsHistory(
+  options: { forceRefresh?: boolean } = {},
+): Promise<LivePoint[]> {
+  const { forceRefresh = false } = options;
+
+  if (!forceRefresh && historyCache) {
+    return historyCache;
+  }
+
+  if (!forceRefresh && historyInflight) {
+    return historyInflight;
+  }
+
+  historyInflight = requestLiveMetricsHistory()
+    .then((points) => {
+      historyCache = points;
+      return points;
+    })
+    .finally(() => {
+      historyInflight = null;
+    });
+
+  return historyInflight;
 }
 
 /**
