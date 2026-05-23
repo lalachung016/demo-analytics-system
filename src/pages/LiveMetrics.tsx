@@ -237,7 +237,7 @@ const LiveMetrics: React.FC = () => {
             即時指標 (Live Metrics)
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            初始 {LIVE_INITIAL_COUNT.toLocaleString()} 筆由 /api/history 載入（靜態預覽）；
+            初始 {LIVE_INITIAL_COUNT.toLocaleString()} 筆由 /api/monitor/live-history 載入（靜態預覽）；
             即時推播（{LIVE_INTERVAL_MS}ms）待 Pusher 串接後啟用
           </p>
         </div>

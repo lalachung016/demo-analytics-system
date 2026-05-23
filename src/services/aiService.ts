@@ -1,4 +1,4 @@
-const ANALYZE_API_PATH = '/api/analyze'
+const ANALYZE_API_PATH = '/api/dashboard/analyze'
 
 async function* readTextStream(
   body: ReadableStream<Uint8Array>,

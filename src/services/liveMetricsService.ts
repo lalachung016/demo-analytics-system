@@ -1,8 +1,8 @@
 import type { LivePoint } from '../types/dashboard'
 
-const HISTORY_API_PATH = '/api/history'
+const HISTORY_API_PATH = '/api/monitor/live-history'
 
-/** 與 api/history.js、simulation/mock_data.py 一致 */
+/** 與 api/monitor/live-history.js、simulation/mock_data.py 一致 */
 export const LIVE_INTERVAL_MS = 200
 export const LIVE_INITIAL_COUNT = 10_000
 

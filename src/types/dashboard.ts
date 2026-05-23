@@ -5,6 +5,11 @@ export interface PieChartData {
   unit: string;   // 單位
 }
 
+export interface YearlyPieChartData {
+  year: number
+  categories: PieChartData[]
+}
+
 // stacked area chart data type
 export interface StackedAreaSeries {
   name: string;

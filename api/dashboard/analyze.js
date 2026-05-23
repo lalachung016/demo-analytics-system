@@ -1,7 +1,7 @@
-import OpenAI from 'openai';
+import OpenAI from 'openai'
 
-const DASHBOARD_STREAM_MODEL = 'gpt-4o-mini';
-const DASHBOARD_STREAM_TEMPERATURE = 0.7;
+const DASHBOARD_STREAM_MODEL = 'gpt-4o-mini'
+const DASHBOARD_STREAM_TEMPERATURE = 0.7
 
 const SYSTEM_PROMPT = `你是一位數據分析顧問。請根據使用者提供的儀表板 JSON 資料（pieData、trendData、kpiData）進行分析。
 
@@ -19,37 +19,37 @@ const SYSTEM_PROMPT = `你是一位數據分析顧問。請根據使用者提供
 - live_analysis：分析結果（正常／異常／警告的具體觀察）
 - status：normal=正常、warning=警告、danger=異常
 - metric_id：本次分析最關注的指標代碼
-- suggestions：1~3 筆建議要點，每筆含 suggestion 與 suggestion_id`;
+- suggestions：1~3 筆建議要點，每筆含 suggestion 與 suggestion_id`
 
 function buildUserPrompt(dashboardData) {
-  return `請針對以下儀表板資料進行分析，並依系統指示輸出 JSON：\n${JSON.stringify(dashboardData)}`;
+  return `請針對以下儀表板資料進行分析，並依系統指示輸出 JSON：\n${JSON.stringify(dashboardData)}`
 }
 
 export const config = {
   maxDuration: 60,
-};
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', 'POST')
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'OPENAI_API_KEY is not configured' });
+    return res.status(500).json({ error: 'OPENAI_API_KEY is not configured' })
   }
 
-  const { dashboardData } = req.body ?? {};
+  const { dashboardData } = req.body ?? {}
   if (dashboardData === undefined) {
-    return res.status(400).json({ error: 'dashboardData is required' });
+    return res.status(400).json({ error: 'dashboardData is required' })
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
 
   try {
     const stream = await openai.chat.completions.create({
@@ -61,19 +61,19 @@ export default async function handler(req, res) {
         { role: 'user', content: buildUserPrompt(dashboardData) },
       ],
       stream: true,
-    });
+    })
 
     for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content ?? '';
-      if (content) res.write(content);
+      const content = chunk.choices[0]?.delta?.content ?? ''
+      if (content) res.write(content)
     }
 
-    res.end();
+    res.end()
   } catch (error) {
-    console.error('OpenAI stream error:', error);
+    console.error('OpenAI stream error:', error)
     if (!res.headersSent) {
-      return res.status(500).json({ error: 'AI analysis failed' });
+      return res.status(500).json({ error: 'AI analysis failed' })
     }
-    res.end();
+    res.end()
   }
 }

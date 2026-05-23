@@ -10,15 +10,21 @@
 
 | 路由 | 頁面 | 資料來源 |
 |------|------|----------|
-| `/dashboard` | 年度指標監控（圓餅、堆疊面積、KPI） | 前端 `mockData.ts`（Faker + 記憶體快取） |
-| `/live-metrics` | 即時大數據折線圖 | 初始：`GET /api/history`；即時：Pusher（Python 模擬器，前端待串接） |
+| `/dashboard` | 年度指標監控（圓餅、堆疊面積、KPI） | `GET /api/dashboard/overview`；AI：`POST /api/dashboard/analyze` |
+| `/live-metrics` | 即時大數據折線圖 | 初始：`GET /api/monitor/live-history`；即時：Pusher（Python，前端待串接） |
 
 ## 目錄結構
 
 ```
-api/                    # Vercel Serverless Functions（Node ESM）
-  analyze.js            # POST 串流 OpenAI 分析（JSON）
-  history.js            # GET 僅產生 Live Metrics 初始化歷史（10k 點）
+api/                    # Vercel Serverless（依「場景」分層，非 REST 資源樹）
+  dashboard/            # 📊 儀表板頁（按月聚合）
+    overview.js         # GET 整合 pieData、trendData、kpiByCategory
+    analyze.js          # POST OpenAI 串流分析
+  monitor/              # ⏱️ 即時監控頁（秒級高頻）
+    live-history.js     # GET 10,000 筆初始序列
+lib/
+  dashboardMock.js      # Dashboard mock + 伺服器快取
+  monitorLiveHistory.js # Live 初始序列演算法
 simulation/
   mock_data.py          # 每 200ms 推 Pusher（live-metrics / point）
 src/
@@ -26,7 +32,7 @@ src/
   components/           # 圖表與 AiAnalysisPanel 等
   hooks/                # useAIStreaming、useChartAutoResize、useExcelExport
   services/
-    mockData.ts         # Dashboard mock 專用（勿混入 Live Metrics）
+    dashboardService.ts # Dashboard API 客戶端 + 快取
     liveMetricsService.ts
     aiService.ts
   types/                # dashboard.ts、analysis.ts
@@ -54,18 +60,18 @@ npm run lint
 
 ### Dashboard（`/dashboard`）
 
-- `src/services/mockData.ts`：`getPieChartMockData`、`getStackedAreaMockData`、`getKpiMockData`，含 600ms 延遲與 per-year/category 快取。
-- `useAIStreaming` → `aiService.createDashboardAnalysisStream` → `POST /api/analyze`（`text/plain` 串流）。
+- `dashboardService.fetchDashboardOverview(year)` → `GET /api/dashboard/overview?year=`（一次取得 Pie + Trend + KPI A/B）；切換 KPI 用 `peekKpiFromCache`。
+- `useAIStreaming` → `aiService` → `POST /api/dashboard/analyze`（`text/plain` 串流）。
 - 串流回應為 JSON；`parseStreamingAnalysis.ts` 用 `partial-json` 解析未閉合 JSON，UI 只顯示 `live_analysis`（打印機效果）。
 - `AiAnalysisPanel`：狀態 | 文字述敘 | 建議要點（三区排版，`min-h-0` + 獨立 scroll）。
 
-**修改 Dashboard  mock 時不要動 `api/history.js` 或 `liveMetricsService.ts`。**
+**修改 Dashboard 時不要動 `api/monitor/*` 或 `liveMetricsService.ts`。**
 
 ### Live Metrics（`/live-metrics`）
 
 | 階段 | 負責 | 說明 |
 |------|------|------|
-| 初始化 | `api/history.js` | 固定 10,000 點，mean-reversion 隨機漫步，時間戳「過去→現在」；**不產生即時新點** |
+| 初始化 | `api/monitor/live-history.js` | 固定 10,000 點；**不產生即時新點** |
 | 即時推播 | `simulation/mock_data.py` | 每 200ms → Pusher `live-metrics` / `point`，payload `{ timestamp, value }` |
 | 前端 | `liveMetricsService.ts` | `fetchLiveMetricsHistory()` 有模組級 cache + inflight 去重（避免 StrictMode 雙重請求） |
 | 訂閱 | `subscribeLiveMetrics()` | 目前 **no-op**；`LIVE_STREAM_ENABLED = false`；`pusher-js` 已安裝待串接 |
@@ -74,16 +80,21 @@ npm run lint
 
 ## API 合約
 
-### `GET /api/history`
+### `GET /api/dashboard/overview?year=2025`
 
-- 回應：`{ points: LivePoint[], meta: { count, intervalMs, purpose: 'initial' } }`
-- `LivePoint`: `{ timestamp: number, value: number }`（value ∈ [0, 100]）
+- 回應：`{ year, pieData, trendData, kpiByCategory: { A, B } }`
+- `year` 查詢參數：2017–2026
 
-### `POST /api/analyze`
+### `POST /api/dashboard/analyze`
 
 - Body：`{ dashboardData: { pieData, trendData, kpiData } }`
 - 需環境變數：`OPENAI_API_KEY`（Vercel 專案設定，非 `VITE_*`）
 - 回應：`text/plain` 串流，內容為單一 JSON 物件（`response_format: json_object`）
+
+### `GET /api/monitor/live-history`
+
+- 回應：`{ points: LivePoint[], meta: { count, intervalMs, purpose: 'initial' } }`
+- `LivePoint`: `{ timestamp: number, value: number }`（value ∈ [0, 100]）
 
 ## Code style
 
@@ -146,7 +157,7 @@ function normalizeStatus(value: any) {
 
 ### 新增 Dashboard 圖表或 KPI
 
-- Mock 資料與快取：`mockData.ts`、`src/types/dashboard.ts`
+- Mock 產生與伺服器快取：`lib/dashboardMock.js`；前端：`dashboardService.ts`、`src/types/dashboard.ts`
 - 頁面組裝：`Dashboard.tsx`；可抽 component 至 `src/components/`
 
 ## 部署
@@ -158,8 +169,8 @@ function normalizeStatus(value: any) {
 ## 勿做的事
 
 - 不要把 `OPENAI_API_KEY` 暴露為 `VITE_*` 或寫進前端 bundle。
-- 不要在 `api/history.js` 產生「即時新點」或接受動態 count 以外的即時邏輯（初始化專用）。
-- 不要把 Live Metrics 邏輯加回 `mockData.ts`。
+- 不要在 `api/monitor/live-history.js` 產生即時新點（初始化專用）。
+- 不要把 Dashboard 資料邏輯加回前端或與 Live Metrics API 混用。
 - 不要提交 `.env`、Pusher secret、或 `.env.local` 內容。
 - 未要求時不要建立 git commit。
 
