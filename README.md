@@ -56,7 +56,14 @@ npm run dev:vercel
 cd simulation && pip install -r requirements.txt && python mock_data.py
 ```
 
-推播至 Pusher `live-metrics` / `point`；前端 `subscribeLiveMetrics` 待串接。
+推播至 Pusher `live-metrics` / `point`；前端以 `pusher-js` 訂閱並 `appendData`。
+
+可選 `.env`（與 Python 使用同一 Pusher App 的**公開** key）：
+
+```bash
+VITE_PUSHER_KEY=your_public_key
+VITE_PUSHER_CLUSTER=ap3
+```
 
 ## 建置與部署
 

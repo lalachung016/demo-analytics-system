@@ -74,7 +74,7 @@ npm run lint
 | 初始化 | `api/monitor/live-history.js` | 固定 10,000 點；**不產生即時新點** |
 | 即時推播 | `simulation/mock_data.py` | 每 200ms → Pusher `live-metrics` / `point`，payload `{ timestamp, value }` |
 | 前端 | `liveMetricsService.ts` | `fetchLiveMetricsHistory()` 有模組級 cache + inflight 去重（避免 StrictMode 雙重請求） |
-| 訂閱 | `subscribeLiveMetrics()` | 目前 **no-op**；`LIVE_STREAM_ENABLED = false`；`pusher-js` 已安裝待串接 |
+| 訂閱 | `subscribeLiveMetrics()` | `pusher-js` 訂閱 `live-metrics` / `point`；`VITE_PUSHER_KEY` + `VITE_PUSHER_CLUSTER`（有 demo 預設） |
 
 `LiveMetrics.tsx`：ECharts 大數據折線、`appendData`、rolling window（3 分鐘）、暫停時 dataZoom 探索歷史。
 
@@ -135,18 +135,18 @@ function normalizeStatus(value: any) {
 | 變數 | 用途 | 位置 |
 |------|------|------|
 | `OPENAI_API_KEY` | `/api/analyze` | `.env` 本機、Vercel 專案設定 |
-| `PUSHER_APP_ID` / `PUSHER_KEY` / `PUSHER_SECRET` / `PUSHER_CLUSTER` | Python 推播（可選，有預設） | `simulation/mock_data.py` |
+| `PUSHER_APP_ID` / `PUSHER_SECRET` | Python 推播（secret 僅後端） | `simulation/mock_data.py` |
+| `VITE_PUSHER_KEY` / `VITE_PUSHER_CLUSTER` | 前端 Pusher 訂閱（公開 key） | 可選，未設則用 demo 預設 |
 
 `.env.local` 為 Vercel CLI 產生的 OIDC，與應用邏輯無關，可刪除。
 
 ## 常見任務指引
 
-### 串接 Live Metrics Pusher
+### Live Metrics Pusher 本機驗證
 
-1. 在 Vercel / `.env` 設定前端可讀的 Pusher key（若用 `VITE_PUSHER_KEY`，僅限公開 key）。
-2. 實作 `subscribeLiveMetrics`（`pusher-js`），訂閱 `LIVE_METRICS_PUSHER_CHANNEL` / `LIVE_METRICS_PUSHER_EVENT`。
-3. 將 `LIVE_STREAM_ENABLED` 改為 `true`；`LiveMetrics.tsx` 內訂閱分支才會 `appendData`。
-4. 確認 `mock_data.py` 與前端使用相同 channel/event。
+1. 終端執行 `cd simulation && python mock_data.py` 推播資料。
+2. 前端 `npm run dev:vercel` 開啟即時指標頁；狀態應為 **LIVE** 且圖表 `appendData`。
+3. 可選 `.env`：`VITE_PUSHER_KEY`、`VITE_PUSHER_CLUSTER`（須與 Python 相同 app）。
 
 ### 調整 AI 分析輸出
 

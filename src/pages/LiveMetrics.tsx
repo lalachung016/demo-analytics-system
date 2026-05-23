@@ -50,6 +50,7 @@ const LiveMetrics: React.FC = () => {
   const [isPaused, setIsPaused] = useState<boolean>(false)
   const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(true)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [isPusherConnected, setIsPusherConnected] = useState<boolean>(false)
 
   const togglePause = () => {
     const chart = chartInstance.current
@@ -161,12 +162,7 @@ const LiveMetrics: React.FC = () => {
 
         chart.setOption(option)
 
-        // 即時推播尚未串接（LIVE_STREAM_ENABLED=false）時不訂閱，圖表維持靜態
-        if (!LIVE_STREAM_ENABLED) {
-          return undefined
-        }
-
-        const unsubscribe = subscribeLiveMetrics((p) => {
+        const appendLivePoint = (p: { timestamp: number; value: number }) => {
           const point: PointTuple = [p.timestamp, p.value]
           dataBufferRef.current.push(point)
 
@@ -191,10 +187,18 @@ const LiveMetrics: React.FC = () => {
           }
 
           setPointCount(dataBufferRef.current.length)
-        })
+        }
+
+        const unsubscribe = LIVE_STREAM_ENABLED
+          ? subscribeLiveMetrics(appendLivePoint, {
+              onConnectionChange: (connected) => {
+                if (!cancelled) setIsPusherConnected(connected)
+              },
+            })
+          : undefined
 
         if (cancelled) {
-          unsubscribe()
+          unsubscribe?.()
           return
         }
 
@@ -222,6 +226,7 @@ const LiveMetrics: React.FC = () => {
     return () => {
       cancelled = true
       unsubscribe?.()
+      setIsPusherConnected(false)
       chart.dispose()
       chartInstance.current = null
     }
@@ -237,8 +242,8 @@ const LiveMetrics: React.FC = () => {
             即時指標 (Live Metrics)
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            初始 {LIVE_INITIAL_COUNT.toLocaleString()} 筆由 /api/monitor/live-history 載入（靜態預覽）；
-            即時推播（{LIVE_INTERVAL_MS}ms）待 Pusher 串接後啟用
+            初始 {LIVE_INITIAL_COUNT.toLocaleString()} 筆由 /api/monitor/live-history 載入；
+            即時推播（{LIVE_INTERVAL_MS}ms）經 Pusher {LIVE_STREAM_ENABLED ? 'live-metrics / point' : '（未設定）'}
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
@@ -248,7 +253,7 @@ const LiveMetrics: React.FC = () => {
                 <span className="inline-flex h-2 w-2 rounded-full bg-slate-500 animate-pulse" />
                 <span className="text-slate-400">LOADING</span>
               </>
-            ) : LIVE_STREAM_ENABLED && !isPaused ? (
+            ) : LIVE_STREAM_ENABLED && isPusherConnected && !isPaused ? (
               <>
                 <span className="relative flex items-center">
                   <span className="absolute inline-flex h-2 w-2 rounded-full bg-cyan-400 opacity-60 animate-ping" />
@@ -256,7 +261,12 @@ const LiveMetrics: React.FC = () => {
                 </span>
                 <span className="text-cyan-300">LIVE</span>
               </>
-            ) : !isPaused ? (
+            ) : LIVE_STREAM_ENABLED && !isPaused ? (
+              <>
+                <span className="inline-flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-amber-300">連線中</span>
+              </>
+            ) : !LIVE_STREAM_ENABLED && !isPaused ? (
               <>
                 <span className="inline-flex h-2 w-2 rounded-full bg-slate-500" />
                 <span className="text-slate-400">靜態</span>
