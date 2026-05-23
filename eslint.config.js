@@ -18,5 +18,9 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      'semi': ['error', 'never'],
+      'quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+    },
   },
 ])

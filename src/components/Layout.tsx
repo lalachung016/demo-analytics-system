@@ -1,28 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { NAV_ITEMS } from '../router/routes';
+import React, { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import MenuIcon from '@mui/icons-material/Menu'
+import CloseIcon from '@mui/icons-material/Close'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import { NAV_ITEMS } from '../router/routes'
 
 const Layout: React.FC = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const location = useLocation()
 
   useEffect(() => {
-    setIsMobileOpen(false);
-  }, [location.pathname]);
+    setIsMobileOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
-    if (!isMobileOpen) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (!isMobileOpen) return
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = original;
-    };
-  }, [isMobileOpen]);
+      document.body.style.overflow = original
+    }
+  }, [isMobileOpen])
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans overflow-x-clip md:flex md:overflow-x-visible">
@@ -129,7 +129,7 @@ const Layout: React.FC = () => {
         <Outlet />
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default Layout;
+export default Layout

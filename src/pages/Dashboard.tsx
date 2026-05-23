@@ -1,100 +1,100 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
-import Button from '@mui/material/Button';
-import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard';
+import React, { useEffect, useState, useMemo } from 'react'
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
+import Button from '@mui/material/Button'
+import type { KpiCategory, KpiData, PieChartData, YearlyStackedAreaData } from '../types/dashboard'
 import {
   getKpiMockData,
   getPieChartMockData,
   getStackedAreaMockData,
   peekKpiFromCache,
-} from '../services/mockData';
-import { useExcelExport } from '../hooks/useExcelExport';
-import CategoryPieChart from '../components/CategoryPieChart';
-import KpiPanel from '../components/KpiPanel';
-import StackedAreaChart from '../components/StackedAreaChart';
-import YearSelector from '../components/YearSelector';
-import AiAnalysisPanel from '../components/AiAnalysisPanel';
-import { useAIStreaming } from '../hooks/useAIStreaming';
+} from '../services/mockData'
+import { useExcelExport } from '../hooks/useExcelExport'
+import CategoryPieChart from '../components/CategoryPieChart'
+import KpiPanel from '../components/KpiPanel'
+import StackedAreaChart from '../components/StackedAreaChart'
+import YearSelector from '../components/YearSelector'
+import AiAnalysisPanel from '../components/AiAnalysisPanel'
+import { useAIStreaming } from '../hooks/useAIStreaming'
 
 const Dashboard: React.FC = () => {  
-  const [year, setYear] = useState<number>(2025);
-  const [kpiCategory, setKpiCategory] = useState<KpiCategory>('A');
-  const [isPieLoading, setIsPieLoading] = useState<boolean>(true);
-  const [isTrendLoading, setIsTrendLoading] = useState<boolean>(true);
-  const [isKpiLoading, setIsKpiLoading] = useState<boolean>(true);
-  const [pieData, setPieData] = useState<PieChartData[]>([]);
-  const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null);
-  const [kpiData, setKpiData] = useState<KpiData[]>([]);
-  const { isExporting, exportExcel } = useExcelExport();
+  const [year, setYear] = useState<number>(2025)
+  const [kpiCategory, setKpiCategory] = useState<KpiCategory>('A')
+  const [isPieLoading, setIsPieLoading] = useState<boolean>(true)
+  const [isTrendLoading, setIsTrendLoading] = useState<boolean>(true)
+  const [isKpiLoading, setIsKpiLoading] = useState<boolean>(true)
+  const [pieData, setPieData] = useState<PieChartData[]>([])
+  const [trendData, setTrendData] = useState<YearlyStackedAreaData | null>(null)
+  const [kpiData, setKpiData] = useState<KpiData[]>([])
+  const { isExporting, exportExcel } = useExcelExport()
   const {
     text: aiAnalysisText,
     analysis: aiAnalysis,
     isLoading: isAiStreaming,
     streamAnalysis,
-  } = useAIStreaming();
+  } = useAIStreaming()
   const handleYearChange = (year: number) => {
-    if (year < 2017 || year > 2026) return;
-    setIsPieLoading(true);
-    setIsTrendLoading(true);
-    setIsKpiLoading(true);
-    setKpiCategory('A');
-    setYear(year);
-  };
+    if (year < 2017 || year > 2026) return
+    setIsPieLoading(true)
+    setIsTrendLoading(true)
+    setIsKpiLoading(true)
+    setKpiCategory('A')
+    setYear(year)
+  }
 
   const handleKpiCategoryChange = (category: KpiCategory) => {
-    const cached = peekKpiFromCache(year, category);
+    const cached = peekKpiFromCache(year, category)
     if (cached) {
-      setKpiData(cached);
-      setIsKpiLoading(false);
+      setKpiData(cached)
+      setIsKpiLoading(false)
     } else {
-      setIsKpiLoading(true);
+      setIsKpiLoading(true)
     }
-    setKpiCategory(category);
-  };
+    setKpiCategory(category)
+  }
 
   const handleExport = async () => {
-    await exportExcel(pieData, trendData, kpiData, `dashboard-${year}`);
-  };
+    await exportExcel(pieData, trendData, kpiData, `dashboard-${year}`)
+  }
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     getPieChartMockData({ year }).then((result) => {
-      if (cancelled) return;
-      setPieData(result.categories);
-      setIsPieLoading(false);
-    });
+      if (cancelled) return
+      setPieData(result.categories)
+      setIsPieLoading(false)
+    })
 
     getStackedAreaMockData({ year }).then((result) => {
-      if (cancelled) return;
-      setTrendData(result);
-      setIsTrendLoading(false);
-    });
+      if (cancelled) return
+      setTrendData(result)
+      setIsTrendLoading(false)
+    })
 
     return () => {
-      cancelled = true;
-    };
-  }, [year]);
+      cancelled = true
+    }
+  }, [year])
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     getKpiMockData({ year, category: kpiCategory }).then((result) => {
-      if (cancelled) return;
-      setKpiData(result);
-      setIsKpiLoading(false);
-    });
+      if (cancelled) return
+      setKpiData(result)
+      setIsKpiLoading(false)
+    })
 
     return () => {
-      cancelled = true;
-    };
-  }, [year, kpiCategory]);
+      cancelled = true
+    }
+  }, [year, kpiCategory])
 
   const dashboardData = useMemo(() => ({
     pieData: pieData,
     trendData: trendData,
     kpiData: kpiData,
-  }), [pieData, trendData, kpiData]);
+  }), [pieData, trendData, kpiData])
 
   const isDashboardDataReady =
     !isPieLoading &&
@@ -102,18 +102,18 @@ const Dashboard: React.FC = () => {
     !isKpiLoading &&
     pieData.length > 0 &&
     trendData !== null &&
-    kpiData.length > 0;
+    kpiData.length > 0
 
-  const aiCacheKey = `${year}-${kpiCategory}`;
+  const aiCacheKey = `${year}-${kpiCategory}`
 
   const handleAIAnalysis = () => {
-    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey, forceRefresh: true });
-  };
+    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey, forceRefresh: true })
+  }
 
   useEffect(() => {
-    if (!isDashboardDataReady) return;
-    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey });
-  }, [isDashboardDataReady, dashboardData, streamAnalysis, aiCacheKey]);
+    if (!isDashboardDataReady) return
+    void streamAnalysis(dashboardData, { cacheKey: aiCacheKey })
+  }, [isDashboardDataReady, dashboardData, streamAnalysis, aiCacheKey])
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans">
@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
         </section>
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

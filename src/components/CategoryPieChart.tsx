@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
-import type { PieChartData } from '../types/dashboard';
-import { useChartAutoResize } from '../hooks/useChartAutoResize';
+import React, { useEffect, useRef } from 'react'
+import * as echarts from 'echarts'
+import type { PieChartData } from '../types/dashboard'
+import { useChartAutoResize } from '../hooks/useChartAutoResize'
 
-const PIE_COLORS = ['#38bdf8', '#2dd4bf', '#fb923c', '#94a3b8'] as const;
+const PIE_COLORS = ['#38bdf8', '#2dd4bf', '#fb923c', '#94a3b8'] as const
 
 interface Props {
   data: PieChartData[];
@@ -11,18 +11,18 @@ interface Props {
 }
 
 const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartInstance = useRef<echarts.ECharts | null>(null)
 
   // 計算總值
-  const totalValue = data.reduce((sum, item) => sum + item.value, 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const totalValue = data.reduce((sum, item) => sum + item.value, 0).toLocaleString('en-US', { maximumFractionDigits: 1 })
 
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current) return
 
     // 1. 初始化
     if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
+      chartInstance.current = echarts.init(chartRef.current)
     }
 
     // 2. 配置項
@@ -34,14 +34,14 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
         extraCssText: 'max-width: 180px; white-space: normal; word-break: break-word;',
         formatter: '{b}: {c} ({d}%)',
         position: (point, _params, _dom, _rect, size) => {
-          const [x, y] = point;
-          const [viewWidth, viewHeight] = size.viewSize;
-          const [contentWidth, contentHeight] = size.contentSize;
-          const gap = 12;
+          const [x, y] = point
+          const [viewWidth, viewHeight] = size.viewSize
+          const [contentWidth, contentHeight] = size.contentSize
+          const gap = 12
 
-          const left = Math.min(Math.max(x + gap, gap), viewWidth - contentWidth - gap);
-          const top = Math.min(Math.max(y + gap, gap), viewHeight - contentHeight - gap);
-          return [left, top];
+          const left = Math.min(Math.max(x + gap, gap), viewWidth - contentWidth - gap)
+          const top = Math.min(Math.max(y + gap, gap), viewHeight - contentHeight - gap)
+          return [left, top]
         },
       },
       series: [
@@ -80,17 +80,17 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
           }
         }
       ]
-    };
+    }
 
-    chartInstance.current.setOption(option);
+    chartInstance.current.setOption(option)
 
     return () => {
-      chartInstance.current?.dispose();
-      chartInstance.current = null;
-    };
-  }, [data, title, totalValue]);
+      chartInstance.current?.dispose()
+      chartInstance.current = null
+    }
+  }, [data, title, totalValue])
 
-  useChartAutoResize(chartInstance, chartRef);
+  useChartAutoResize(chartInstance, chartRef)
 
   return (
     <div className="flex flex-col md:flex-row md:items-center w-full h-full px-4">
@@ -119,7 +119,7 @@ const CategoryPieChart: React.FC<Props> = ({ data, title }) => {
         ))}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default CategoryPieChart;
+export default CategoryPieChart

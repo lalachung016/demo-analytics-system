@@ -1,21 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as echarts from 'echarts';
-import PauseIcon from '@mui/icons-material/Pause';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import Button from '@mui/material/Button';
-import { useChartAutoResize } from '../hooks/useChartAutoResize';
+import React, { useEffect, useRef, useState } from 'react'
+import * as echarts from 'echarts'
+import PauseIcon from '@mui/icons-material/Pause'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import Button from '@mui/material/Button'
+import { useChartAutoResize } from '../hooks/useChartAutoResize'
 import {
   fetchLiveMetricsHistory,
   LIVE_INITIAL_COUNT,
   LIVE_INTERVAL_MS,
   LIVE_STREAM_ENABLED,
   subscribeLiveMetrics,
-} from '../services/liveMetricsService';
+} from '../services/liveMetricsService'
 
-const LINE_COLOR = '#22d3ee';
-const WINDOW_MS = 3 * 60 * 1000; // 即時模式下 rolling window 寬度
-const MAX_POINTS = 10_100; // 超過此筆數觸發 trim
-const KEEP_POINTS = 10_000; // trim 後保留最新筆數
+const LINE_COLOR = '#22d3ee'
+const WINDOW_MS = 3 * 60 * 1000 // 即時模式下 rolling window 寬度
+const MAX_POINTS = 10_100 // 超過此筆數觸發 trim
+const KEEP_POINTS = 10_000 // trim 後保留最新筆數
 
 type PointTuple = [number, number]; // [timestamp, value]
 
@@ -38,30 +38,30 @@ const sliderStyle: echarts.DataZoomComponentOption = {
     lineStyle: { color: '#22d3ee' },
     areaStyle: { color: 'rgba(34,211,238,0.25)' },
   },
-};
+}
 
 const LiveMetrics: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
-  const dataBufferRef = useRef<PointTuple[]>([]);
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartInstance = useRef<echarts.ECharts | null>(null)
+  const dataBufferRef = useRef<PointTuple[]>([])
   /** 視覺是否暫停；用 ref 是因為 subscribe callback 需要讀最新值，避免閉包過期 */
-  const isPausedRef = useRef<boolean>(false);
-  const [pointCount, setPointCount] = useState<number>(0);
-  const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(true);
-  const [historyError, setHistoryError] = useState<string | null>(null);
+  const isPausedRef = useRef<boolean>(false)
+  const [pointCount, setPointCount] = useState<number>(0)
+  const [isPaused, setIsPaused] = useState<boolean>(false)
+  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(true)
+  const [historyError, setHistoryError] = useState<string | null>(null)
 
   const togglePause = () => {
-    const chart = chartInstance.current;
-    if (!chart) return;
+    const chart = chartInstance.current
+    if (!chart) return
 
     if (isPausedRef.current) {
       // === 繼續播放：跳轉到最新時間點 ===
-      isPausedRef.current = false;
-      setIsPaused(false);
+      isPausedRef.current = false
+      setIsPaused(false)
 
-      const buf = dataBufferRef.current;
-      const lastTs = buf[buf.length - 1]?.[0] ?? Date.now();
+      const buf = dataBufferRef.current
+      const lastTs = buf[buf.length - 1]?.[0] ?? Date.now()
       // 用 setOption 整批塞入 buffer（含暫停期間累積的資料）並回到 rolling window
       chart.setOption(
         {
@@ -70,14 +70,14 @@ const LiveMetrics: React.FC = () => {
           series: [{ data: buf }],
         },
         { replaceMerge: ['dataZoom'] },
-      );
+      )
     } else {
       // === 暫停：把當下 buffer 凍結為 dataZoom 可探索的快照（訂閱不會停） ===
-      isPausedRef.current = true;
-      setIsPaused(true);
+      isPausedRef.current = true
+      setIsPaused(true)
 
-      const buf = dataBufferRef.current;
-      if (buf.length === 0) return;
+      const buf = dataBufferRef.current
+      if (buf.length === 0) return
       chart.setOption({
         xAxis: { min: buf[0][0], max: buf[buf.length - 1][0] },
         dataZoom: [
@@ -85,29 +85,29 @@ const LiveMetrics: React.FC = () => {
           sliderStyle,
         ],
         series: [{ data: buf }],
-      });
+      })
     }
-  };
+  }
 
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current) return
 
-    let cancelled = false;
-    const chart = echarts.init(chartRef.current);
-    chartInstance.current = chart;
+    let cancelled = false
+    const chart = echarts.init(chartRef.current)
+    chartInstance.current = chart
 
     const initChart = async () => {
-      setIsHistoryLoading(true);
-      setHistoryError(null);
+      setIsHistoryLoading(true)
+      setHistoryError(null)
 
       try {
-        const seed = await fetchLiveMetricsHistory();
-        if (cancelled) return;
+        const seed = await fetchLiveMetricsHistory()
+        if (cancelled) return
 
-        dataBufferRef.current = seed.map((p) => [p.timestamp, p.value]);
-        setPointCount(seed.length);
+        dataBufferRef.current = seed.map((p) => [p.timestamp, p.value])
+        setPointCount(seed.length)
 
-        const seedEndTs = seed[seed.length - 1].timestamp;
+        const seedEndTs = seed[seed.length - 1].timestamp
 
         const option: echarts.EChartsOption = {
           large: true,
@@ -119,10 +119,10 @@ const LiveMetrics: React.FC = () => {
             confine: true,
             axisPointer: { type: 'line', lineStyle: { color: '#475569' } },
             formatter: (params) => {
-              const item = (params as echarts.DefaultLabelFormatterCallbackParams[])[0];
-              const [ts, value] = item.value as PointTuple;
-              const time = new Date(ts).toLocaleTimeString('zh-TW', { hour12: false });
-              return `${time}<br/>數值：<b>${value}</b>`;
+              const item = (params as echarts.DefaultLabelFormatterCallbackParams[])[0]
+              const [ts, value] = item.value as PointTuple
+              const time = new Date(ts).toLocaleTimeString('zh-TW', { hour12: false })
+              return `${time}<br/>數值：<b>${value}</b>`
             },
           },
           xAxis: {
@@ -157,23 +157,23 @@ const LiveMetrics: React.FC = () => {
               data: dataBufferRef.current,
             },
           ],
-        };
+        }
 
-        chart.setOption(option);
+        chart.setOption(option)
 
         // 即時推播尚未串接（LIVE_STREAM_ENABLED=false）時不訂閱，圖表維持靜態
         if (!LIVE_STREAM_ENABLED) {
-          return undefined;
+          return undefined
         }
 
         const unsubscribe = subscribeLiveMetrics((p) => {
-          const point: PointTuple = [p.timestamp, p.value];
-          dataBufferRef.current.push(point);
+          const point: PointTuple = [p.timestamp, p.value]
+          dataBufferRef.current.push(point)
 
-          let didTrim = false;
+          let didTrim = false
           if (dataBufferRef.current.length > MAX_POINTS) {
-            dataBufferRef.current = dataBufferRef.current.slice(-KEEP_POINTS);
-            didTrim = true;
+            dataBufferRef.current = dataBufferRef.current.slice(-KEEP_POINTS)
+            didTrim = true
           }
 
           if (!isPausedRef.current) {
@@ -181,53 +181,53 @@ const LiveMetrics: React.FC = () => {
               chart.setOption({
                 xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
                 series: [{ data: dataBufferRef.current }],
-              });
+              })
             } else {
-              chart.appendData({ seriesIndex: 0, data: [point] });
+              chart.appendData({ seriesIndex: 0, data: [point] })
               chart.setOption({
                 xAxis: { min: p.timestamp - WINDOW_MS, max: p.timestamp },
-              });
+              })
             }
           }
 
-          setPointCount(dataBufferRef.current.length);
-        });
+          setPointCount(dataBufferRef.current.length)
+        })
 
         if (cancelled) {
-          unsubscribe();
-          return;
+          unsubscribe()
+          return
         }
 
-        return unsubscribe;
+        return unsubscribe
       } catch (error) {
         if (!cancelled) {
-          const message = error instanceof Error ? error.message : '載入歷史資料失敗';
-          setHistoryError(message);
-          console.error('Live Metrics 歷史資料載入失敗', error);
+          const message = error instanceof Error ? error.message : '載入歷史資料失敗'
+          setHistoryError(message)
+          console.error('Live Metrics 歷史資料載入失敗', error)
         }
-        return undefined;
+        return undefined
       } finally {
         if (!cancelled) {
-          setIsHistoryLoading(false);
+          setIsHistoryLoading(false)
         }
       }
-    };
+    }
 
-    let unsubscribe: (() => void) | undefined;
+    let unsubscribe: (() => void) | undefined
 
     void initChart().then((cleanup) => {
-      unsubscribe = cleanup;
-    });
+      unsubscribe = cleanup
+    })
 
     return () => {
-      cancelled = true;
-      unsubscribe?.();
-      chart.dispose();
-      chartInstance.current = null;
-    };
-  }, []);
+      cancelled = true
+      unsubscribe?.()
+      chart.dispose()
+      chartInstance.current = null
+    }
+  }, [])
 
-  useChartAutoResize(chartInstance, chartRef);
+  useChartAutoResize(chartInstance, chartRef)
 
   return (
     <div className="min-h-screen p-6">
@@ -312,7 +312,7 @@ const LiveMetrics: React.FC = () => {
         <div ref={chartRef} className="w-full h-full" />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LiveMetrics;
+export default LiveMetrics

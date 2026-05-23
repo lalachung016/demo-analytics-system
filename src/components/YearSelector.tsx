@@ -1,7 +1,7 @@
-import React from 'react';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import IconButton from '@mui/material/IconButton';
+import React from 'react'
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft'
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
+import IconButton from '@mui/material/IconButton'
 
 interface Props {
   year: number;
@@ -39,7 +39,7 @@ const YearSelector: React.FC<Props> = ({ year, minYear, maxYear, onYearChange })
         <KeyboardArrowRightIcon fontSize="small" />
       </IconButton>
     </div>
-  );
-};
+  )
+}
 
-export default YearSelector;
+export default YearSelector

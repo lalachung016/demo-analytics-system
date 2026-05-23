@@ -1,6 +1,6 @@
-import React from 'react';
-import Button from '@mui/material/Button';
-import type { DashboardAnalysis } from '../types/analysis';
+import React from 'react'
+import Button from '@mui/material/Button'
+import type { DashboardAnalysis } from '../types/analysis'
 
 interface Props {
   analysisText: string;
@@ -14,13 +14,13 @@ const STATUS_LABEL: Record<NonNullable<DashboardAnalysis['status']>, string> = {
   danger: '異常',
   warning: '警告',
   normal: '正常',
-};
+}
 
 const STATUS_CLASS: Record<NonNullable<DashboardAnalysis['status']>, string> = {
   danger: 'bg-red-500/20 text-red-300',
   warning: 'bg-amber-500/20 text-amber-300',
   normal: 'bg-emerald-500/20 text-emerald-300',
-};
+}
 
 const AiAnalysisPanel: React.FC<Props> = ({
   analysisText,
@@ -29,7 +29,7 @@ const AiAnalysisPanel: React.FC<Props> = ({
   isDataReady,
   onRefresh,
 }) => {
-  const hasSuggestions = (analysis?.suggestions.length ?? 0) > 0;
+  const hasSuggestions = (analysis?.suggestions.length ?? 0) > 0
 
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex flex-col min-h-[410px] max-h-[520px]">
@@ -132,7 +132,7 @@ const AiAnalysisPanel: React.FC<Props> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AiAnalysisPanel;
+export default AiAnalysisPanel

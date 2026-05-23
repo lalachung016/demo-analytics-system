@@ -1,24 +1,24 @@
-import React, { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
-import type { YearlyStackedAreaData } from '../types/dashboard';
-import { useChartAutoResize } from '../hooks/useChartAutoResize';
+import React, { useEffect, useRef } from 'react'
+import * as echarts from 'echarts'
+import type { YearlyStackedAreaData } from '../types/dashboard'
+import { useChartAutoResize } from '../hooks/useChartAutoResize'
 
 interface Props {
   data: YearlyStackedAreaData;
   title: string;
 }
 
-const TREND_COLORS = ['#818cf8', '#22d3ee', '#34d399'] as const;
+const TREND_COLORS = ['#818cf8', '#22d3ee', '#34d399'] as const
 
 const StackedAreaChart: React.FC<Props> = ({ data, title }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartInstance = useRef<echarts.ECharts | null>(null)
 
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current) return
 
     if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
+      chartInstance.current = echarts.init(chartRef.current)
     }
 
     const option: echarts.EChartsOption = {
@@ -33,13 +33,13 @@ const StackedAreaChart: React.FC<Props> = ({ data, title }) => {
         trigger: 'axis',
         confine: true,
         formatter: (params) => {
-          const items = params as echarts.DefaultLabelFormatterCallbackParams[];
+          const items = params as echarts.DefaultLabelFormatterCallbackParams[]
           const list = items.map((item) => {
-            const marker = item.marker ?? '';
-            return `${marker} ${item.seriesName}: ${item.value} 萬元`;
-          });
-          const axisLabel = (items[0] as { axisValueLabel?: string } | undefined)?.axisValueLabel ?? '';
-          return `${axisLabel}<br/>${list.join('<br/>')}`;
+            const marker = item.marker ?? ''
+            return `${marker} ${item.seriesName}: ${item.value} 萬元`
+          })
+          const axisLabel = (items[0] as { axisValueLabel?: string } | undefined)?.axisValueLabel ?? ''
+          return `${axisLabel}<br/>${list.join('<br/>')}`
         },
       },
       xAxis: {
@@ -71,19 +71,19 @@ const StackedAreaChart: React.FC<Props> = ({ data, title }) => {
         show: false,
         text: title,
       },
-    };
+    }
 
-    chartInstance.current.setOption(option);
+    chartInstance.current.setOption(option)
 
     return () => {
-      chartInstance.current?.dispose();
-      chartInstance.current = null;
-    };
-  }, [data, title]);
+      chartInstance.current?.dispose()
+      chartInstance.current = null
+    }
+  }, [data, title])
 
-  useChartAutoResize(chartInstance, chartRef);
+  useChartAutoResize(chartInstance, chartRef)
 
-  return <div ref={chartRef} className="w-full h-full min-h-[260px]" />;
-};
+  return <div ref={chartRef} className="w-full h-full min-h-[260px]" />
+}
 
-export default StackedAreaChart;
+export default StackedAreaChart

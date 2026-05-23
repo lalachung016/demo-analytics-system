@@ -1,11 +1,11 @@
-import React from 'react';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import FormControl from '@mui/material/FormControl';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import Tooltip from '@mui/material/Tooltip';
-import type { KpiCategory, KpiData } from '../types/dashboard';
+import React from 'react'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import FormControl from '@mui/material/FormControl'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
+import Tooltip from '@mui/material/Tooltip'
+import type { KpiCategory, KpiData } from '../types/dashboard'
 
 interface Props {
   kpiCategory: KpiCategory;
@@ -101,7 +101,7 @@ const KpiPanel: React.FC<Props> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default KpiPanel;
+export default KpiPanel

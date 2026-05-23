@@ -1,21 +1,21 @@
-const ANALYZE_API_PATH = '/api/analyze';
+const ANALYZE_API_PATH = '/api/analyze'
 
 async function* readTextStream(
   body: ReadableStream<Uint8Array>,
 ): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      const { done, value } = await reader.read()
+      if (done) break
       if (value?.length) {
-        yield decoder.decode(value, { stream: true });
+        yield decoder.decode(value, { stream: true })
       }
     }
   } finally {
-    reader.releaseLock();
+    reader.releaseLock()
   }
 }
 
@@ -27,16 +27,16 @@ export async function createDashboardAnalysisStream(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ dashboardData }),
-  });
+  })
 
   if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(message || `Analyze API failed (${response.status})`);
+    const message = await response.text().catch(() => response.statusText)
+    throw new Error(message || `Analyze API failed (${response.status})`)
   }
 
   if (!response.body) {
-    throw new Error('Analyze API returned empty body');
+    throw new Error('Analyze API returned empty body')
   }
 
-  return readTextStream(response.body);
+  return readTextStream(response.body)
 }
